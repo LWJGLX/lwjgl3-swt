@@ -155,7 +155,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to create OpenGL context");
         }
 
-        // If version was < 3.0 and no multisampling is requested we are done.
+        // If version was < 3.0, no multisampling is requested and also no shared context is set, we are done.
         if (attribs.majorVersion < 3 && attribs.minorVersion <= 0 && attribs.samples <= 1) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
 
@@ -165,12 +165,19 @@ public class Win32ContextFunctions implements ContextFunctions {
             JNI.callPI(wgl.DeleteContext, dummyContext);
             long context = JNI.callPP(wgl.CreateContext, hDC);
             User32.ReleaseDC(windowHandle, hDC);
+
+            /* Check if we want to share context */
+            if (attribs.shareContext != 0L) {
+                int succ = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
+                if (succ == 0) {
+                    throw new OpenGLContextException("Failed while configuring context sharing.");
+                }
+            }
+
             return context;
         }
 
-        // If we want a GL >= 3.0 context or multisampling, we next find the ARB extension to create a "new" context.
-        // But because this is the first time we actually need to make a context current, we store the currently
-        // active context (if any) to restore it later.
+        // Save current context to restore it later
         long currentContext = JNI.callP(wgl.GetCurrentContext);
         long currentDc = JNI.callP(wgl.GetCurrentDC);
 
@@ -266,7 +273,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to set pixel format.");
         }
         // And create new context with it
-        long newCtx = JNI.callPPPP(wglCreateContextAttribsARBAddr, hDC, 0L, attribListAddr);
+        long newCtx = JNI.callPPPP(wglCreateContextAttribsARBAddr, hDC, attribs.shareContext, attribListAddr);
         User32.ReleaseDC(windowHandle, hDC);
         if (newCtx == 0L) {
             // Make old context current
