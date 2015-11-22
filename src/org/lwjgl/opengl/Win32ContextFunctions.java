@@ -161,6 +161,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to create OpenGL context");
         }
 
+        APIBuffer buffer = APIUtil.apiBuffer();
+
         // If version was < 3.0 and no multisampling is requested, we are done.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
@@ -170,6 +172,18 @@ public class Win32ContextFunctions implements ContextFunctions {
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
             JNI.callPI(wgl.DeleteContext, dummyContext);
             long context = JNI.callPP(wgl.CreateContext, hDC);
+
+            if (attribs.swapInterval > 0) {
+                // Make context current to set the swap interval
+                JNI.callPPI(wgl.MakeCurrent, hDC, context);
+                int procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
+                long adr = buffer.address(procEncoded);
+                long wglSwapIntervalEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
+                if (wglSwapIntervalEXTAddr != 0L) {
+                    JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
+                }
+            }
+
             User32.ReleaseDC(windowHandle, hDC);
 
             /* Check if we want to share context */
@@ -198,7 +212,6 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
 
         // Obtain wglCreateContextAttribsARB function pointer
-        APIBuffer buffer = APIUtil.apiBuffer();
         int procEncoded = buffer.stringParamASCII("wglCreateContextAttribsARB", true);
         long adr = buffer.address(procEncoded);
         long wglCreateContextAttribsARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
