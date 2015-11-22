@@ -17,7 +17,8 @@ import org.lwjgl.opengl.OpenGLContextException;
  * 
  * @author Kai Burjack
  */
-public class GLCanvas extends AbstractGLCanvas {
+public class GLCanvas extends Canvas {
+    long context;
     int pixelFormat;
     static final String USE_OWNDC_KEY = "org.eclipse.swt.internal.win32.useOwnDC";
 
