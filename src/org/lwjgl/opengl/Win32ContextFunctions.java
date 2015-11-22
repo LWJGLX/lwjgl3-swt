@@ -163,6 +163,10 @@ public class Win32ContextFunctions implements ContextFunctions {
 
         APIBuffer buffer = APIUtil.apiBuffer();
 
+        // Save current context to restore it later
+        long currentContext = JNI.callP(wgl.GetCurrentContext);
+        long currentDc = JNI.callP(wgl.GetCurrentDC);
+
         // If version was < 3.0 and no multisampling is requested, we are done.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
@@ -182,6 +186,8 @@ public class Win32ContextFunctions implements ContextFunctions {
                 if (wglSwapIntervalEXTAddr != 0L) {
                     JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
                 }
+                // Restore old context
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             }
 
             User32.ReleaseDC(windowHandle, hDC);
@@ -197,10 +203,6 @@ public class Win32ContextFunctions implements ContextFunctions {
 
             return context;
         }
-
-        // Save current context to restore it later
-        long currentContext = JNI.callP(wgl.GetCurrentContext);
-        long currentDc = JNI.callP(wgl.GetCurrentDC);
 
         // Make the new dummy context current
         int success = JNI.callPPI(wgl.MakeCurrent, hDCdummy, dummyContext);
