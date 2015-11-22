@@ -1,7 +1,6 @@
 package org.lwjgl.opengl.swt;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.internal.win32.OS;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
@@ -9,6 +8,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.opengl.GLContextAttributes;
 import org.lwjgl.opengl.OpenGLContextException;
+import org.lwjgl.system.Platform;
 
 /**
  * Drop-in replacement for SWT's {@link org.eclipse.swt.opengl.GLCanvas} class.
@@ -46,13 +46,21 @@ public class GLCanvas extends Canvas {
         addListener(SWT.Dispose, listener);
     }
 
-    private static int checkStyle(Composite parent, int style) {
+    private static int checkStyleWin32(Composite parent, int style) {
         // Somehow we need to temporarily set 'org.eclipse.swt.internal.win32.useOwnDC'
         // to true or else context creation on Windows fails...
         if (parent != null) {
-            if (!OS.IsWinCE && OS.WIN32_VERSION >= OS.VERSION(6, 0)) {
+            if (!org.eclipse.swt.internal.win32.OS.IsWinCE && 
+                    org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
                 parent.getDisplay().setData(USE_OWNDC_KEY, new Boolean(true));
             }
+        }
+        return style;
+    }
+
+    private static int checkStyle(Composite parent, int style) {
+        if (Platform.get() == Platform.WINDOWS) {
+            return checkStyleWin32(parent, style);
         }
         return style;
     }

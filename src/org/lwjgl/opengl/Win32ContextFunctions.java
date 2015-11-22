@@ -170,6 +170,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             if (attribs.shareContext != 0L) {
                 int succ = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
                 if (succ == 0) {
+                    JNI.callPI(wgl.DeleteContext, context);
                     throw new OpenGLContextException("Failed while configuring context sharing.");
                 }
             }
