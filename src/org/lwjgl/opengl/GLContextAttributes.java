@@ -94,5 +94,9 @@ public class GLContextAttributes {
      * Whether a debug context should be requested.
      */
     public boolean debug;
+    /**
+     * Set the swap interval.
+     */
+    public int swapInterval;
 
 }

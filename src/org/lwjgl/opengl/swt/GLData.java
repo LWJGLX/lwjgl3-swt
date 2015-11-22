@@ -107,6 +107,10 @@ public class GLData {
      * Whether a debug context should be requested.
      */
     public boolean debug;
+    /**
+     * Set the swap interval.
+     */
+    public int swapInterval;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -134,6 +138,7 @@ public class GLData {
         attribs.samples = samples;
         attribs.stencilSize = stencilSize;
         attribs.stereo = stereo;
+        attribs.swapInterval = swapInterval;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }

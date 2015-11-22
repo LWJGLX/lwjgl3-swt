@@ -280,13 +280,24 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         // And create new context with it
         long newCtx = JNI.callPPPP(wglCreateContextAttribsARBAddr, hDC, attribs.shareContext, attribListAddr);
-        User32.ReleaseDC(windowHandle, hDC);
         if (newCtx == 0L) {
+            User32.ReleaseDC(windowHandle, hDC);
             // Make old context current
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             // Could not create new context
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
+        if (attribs.swapInterval > 0) {
+            // Make context current to set the swap interval
+            JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
+            procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
+            adr = buffer.address(procEncoded);
+            long wglSwapIntervalEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglSwapIntervalEXTAddr != 0L) {
+                JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
+            }
+        }
+        User32.ReleaseDC(windowHandle, hDC);
         // Restore old context
         JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
         // Destroy dummy context

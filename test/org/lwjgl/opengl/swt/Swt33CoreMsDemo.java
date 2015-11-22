@@ -20,7 +20,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 /**
- * SWT with OpenGL 3.3 core and multisampling.
+ * SWT with OpenGL 3.3 core, multisampling and v-sync.
  * <p>
  * You can verify that a 3.3 core context is being created by removing/commenting
  * the call to glBindVertexArray and see that nothing gets drawn.
@@ -42,6 +42,7 @@ public class Swt33CoreMsDemo {
 		data.minorVersion = 3;
 		data.profile = GLData.OPENGL_CORE_PROFILE;
 		data.samples = 4;
+		data.swapInterval = 1;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
 		canvas.setCurrent();
 		GL.createCapabilities();
