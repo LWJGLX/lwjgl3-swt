@@ -67,7 +67,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
-        if ((attribs.compatibility || attribs.core) && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
+        if (attribs.profile > 0 && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Context profiles are only defined for OpenGL version 3.2 and above");
         }
     }
@@ -155,8 +155,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to create OpenGL context");
         }
 
-        // If version was < 3.0, no multisampling is requested and also no shared context is set, we are done.
-        if (attribs.majorVersion < 3 && attribs.minorVersion <= 0 && attribs.samples <= 1) {
+        // If version was < 3.0 and no multisampling is requested, we are done.
+        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
 
             /* Finally, create the real context on the real window */
@@ -247,10 +247,9 @@ public class Win32ContextFunctions implements ContextFunctions {
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_MINOR_VERSION_ARB).put(attribs.minorVersion);
         }
         int profile = 0;
-        if (attribs.compatibility) {
+        if (attribs.profile == GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE) {
             profile = WGLARBCreateContextProfile.WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
-        }
-        if (attribs.core) {
+        } else if (attribs.profile == GLContextAttributes.OPENGL_CORE_PROFILE) {
             profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
         }
         if (profile > 0)

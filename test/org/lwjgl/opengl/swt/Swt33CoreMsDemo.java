@@ -40,7 +40,7 @@ public class Swt33CoreMsDemo {
 		GLData data = new GLData();
 		data.majorVersion = 3;
 		data.minorVersion = 3;
-		data.core = true;
+		data.profile = GLData.OPENGL_CORE_PROFILE;
 		data.samples = 4;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
 		canvas.setCurrent();

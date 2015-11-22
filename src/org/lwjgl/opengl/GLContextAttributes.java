@@ -6,6 +6,20 @@ package org.lwjgl.opengl;
  * @author Kai Burjack
  */
 public class GLContextAttributes {
+
+    /**
+     * Constant for the core profile. This is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
+     * 
+     * @see #profile
+     */
+    public static final int OPENGL_CORE_PROFILE = 1;
+    /**
+     * Constant for the compatibility profile.
+     * 
+     * @see #profile
+     */
+    public static final int OPENGL_COMPATIBILITY_PROFILE = 2;
+
     /**
      * Whether to use double-buffering. It defaults to <code>true</code>.
      */
@@ -73,13 +87,9 @@ public class GLContextAttributes {
      */
     public boolean forwardCompatible;
     /**
-     * Whether a context with the compatibility profile should be created.
+     * The profile to use. Defaults to 0, which means "not specified".
      */
-    public boolean compatibility;
-    /**
-     * Whether a core context should be created. This has only an effect when ( {@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
-     */
-    public boolean core;
+    public int profile;
     /**
      * Whether a debug context should be requested.
      */

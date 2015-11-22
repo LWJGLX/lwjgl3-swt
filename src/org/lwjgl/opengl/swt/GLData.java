@@ -37,7 +37,7 @@ public class GLData {
     /**
      * The number of bits for the alpha color channel. It defaults to 8.
      */
-    public int alphaSize = 0;
+    public int alphaSize = 8;
     /**
      * The number of bits for the depth channel. It defaults to 24.
      */
@@ -71,6 +71,19 @@ public class GLData {
      */
 
     /**
+     * Constant for the core profile. This is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
+     * 
+     * @see #profile
+     */
+    public static final int OPENGL_CORE_PROFILE = 1;
+    /**
+     * Constant for the compatibility profile.
+     * 
+     * @see #profile
+     */
+    public static final int OPENGL_COMPATIBILITY_PROFILE = 2;
+
+    /**
      * The major GL context version to use. It defaults to 0 for "not specified".
      */
     public int majorVersion;
@@ -87,10 +100,9 @@ public class GLData {
      */
     public boolean compatibility;
     /**
-     * Whether a core context should be created. Setting this to <code>true</code> is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least
-     * 3.2.
+     * The profile to use. Defaults to 0, which means "not specified".
      */
-    public boolean core;
+    public int profile;
     /**
      * Whether a debug context should be requested.
      */
@@ -109,8 +121,7 @@ public class GLData {
         attribs.accumGreenSize = accumGreenSize;
         attribs.alphaSize = alphaSize;
         attribs.blueSize = blueSize;
-        attribs.compatibility = compatibility;
-        attribs.core = core;
+        attribs.profile = profile;
         attribs.debug = debug;
         attribs.depthSize = depthSize;
         attribs.doubleBuffer = doubleBuffer;
