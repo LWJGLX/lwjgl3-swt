@@ -34,7 +34,7 @@ then adding multisampling and using a OpenGL 3.2 core context is as easy as doin
 		final Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
 		GLData data = new GLData();
-		data.core = true;
+		data.profile = GLData.OPENGL_CORE_PROFILE;
 		data.majorVersion = 3;
 		data.minorVersion = 2;
 		data.samples = 4; // 4x multisampling
