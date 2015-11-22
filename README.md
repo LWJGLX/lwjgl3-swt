@@ -4,9 +4,10 @@ Revised drop-in implementation of SWT's GLCanvas.
 
 ## What does it get me?
 
-Support for creating:
-- OpenGL 3.0 and 3.2 core/compatibility contexts
+Support for:
+- creating OpenGL 3.0 and 3.2 core/compatibility contexts
 - Multisampled framebuffers
+- v-sync/swap control
 
 ## Why does it exist?
 
@@ -39,4 +40,8 @@ then adding multisampling and using a OpenGL 3.2 core context is as easy as doin
 		data.minorVersion = 2;
 		data.samples = 4; // 4x multisampling
 		GLCanvas canvas = new GLCanvas(shell, 0, data);
+```
+If you want to enable v-sync (swap buffers in sync with the monitor refresh rate), set the `swapInterval` in GLData:
+```Java
+		data.swapInterval = 1;
 ```
