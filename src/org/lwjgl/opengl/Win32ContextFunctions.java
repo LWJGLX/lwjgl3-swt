@@ -67,6 +67,12 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
+        if (attribs.profile < 0 || attribs.profile > 2) {
+            throw new IllegalArgumentException("Invalid profile.");
+        }
+        if (attribs.samples < 0) {
+            throw new IllegalArgumentException("Invalid samples count");
+        }
         if (attribs.profile > 0 && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Context profiles are only defined for OpenGL version 3.2 and above");
         }
@@ -242,7 +248,7 @@ public class Win32ContextFunctions implements ContextFunctions {
 
         // Compose the attributes list
         attribList.rewind();
-        if (attribs.majorVersion >= 3) {
+        if (atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_MAJOR_VERSION_ARB).put(attribs.majorVersion);
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_MINOR_VERSION_ARB).put(attribs.minorVersion);
         }
