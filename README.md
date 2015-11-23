@@ -23,25 +23,22 @@ or creating a OpenGL 3.2 core context.
 
 If your current OpenGL SWT setup looks like this:
 ```Java
-		final Display display = new Display();
-		final Shell shell = new Shell(display);
+		Display display = new Display();
+		Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
 		GLData data = new GLData();
 		GLCanvas canvas = new GLCanvas(shell, 0, data);
 ```
 then adding multisampling and using a OpenGL 3.2 core context is as easy as doing:
 ```Java
-		final Display display = new Display();
-		final Shell shell = new Shell(display);
+		Display display = new Display();
+		Shell shell = new Shell(display);
 		shell.setLayout(new FillLayout());
 		GLData data = new GLData();
 		data.profile = GLData.OPENGL_CORE_PROFILE;
 		data.majorVersion = 3;
 		data.minorVersion = 2;
 		data.samples = 4; // 4x multisampling
+		data.swapInterval = 1; // for enabling v-sync (swapbuffers sync'ed to monitor refresh)
 		GLCanvas canvas = new GLCanvas(shell, 0, data);
-```
-If you want to enable v-sync (swap buffers in sync with the monitor refresh rate), set the `swapInterval` in GLData:
-```Java
-		data.swapInterval = 1;
 ```
