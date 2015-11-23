@@ -173,8 +173,12 @@ public class Win32ContextFunctions implements ContextFunctions {
         long currentContext = JNI.callP(wgl.GetCurrentContext);
         long currentDc = JNI.callP(wgl.GetCurrentDC);
 
-        // If version was < 3.0 and no multisampling is requested and also no sRGB and no floating point pixel format, we are done.
-        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1 && !attribs.sRGB && !attribs.floatPixelFormat) {
+        // For some constellations of context attributes, we can stop right here.
+        if (!atLeast30(attribs.majorVersion, attribs.minorVersion)
+                && attribs.samples <= 1
+                && !attribs.sRGB
+                && !attribs.floatPixelFormat
+                && attribs.contextReleaseBehavior == 0) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
 
             /* Finally, create the real context on the real window */
@@ -290,6 +294,10 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         if (contextFlags > 0)
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB).put(contextFlags);
+        if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE)
+            attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB);
+        else if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)
+            attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB);
         attribList.put(0).put(0);
         // Set pixelformat
         int succ = GDI32.SetPixelFormat(hDC, pixelFormat, pfd);

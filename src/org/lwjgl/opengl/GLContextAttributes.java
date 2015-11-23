@@ -21,6 +21,19 @@ public class GLContextAttributes {
     public static final int OPENGL_COMPATIBILITY_PROFILE = 2;
 
     /**
+     * Constant for doing nothing on context switch.
+     * 
+     * @see #contextReleaseBehavior
+     */
+    public static final int CONTEXT_RELEASE_BEHAVIOR_NONE = 1;
+    /**
+     * Constant for flushing GL pipeline on context switch.
+     * 
+     * @see #contextReleaseBehavior
+     */
+    public static final int CONTEXT_RELEASE_BEHAVIOR_FLUSH = 2;
+
+    /**
      * Whether to use double-buffering. It defaults to <code>true</code>.
      */
     public boolean doubleBuffer = true;
@@ -106,5 +119,9 @@ public class GLContextAttributes {
      * Whether to use a floating point pixel format.
      */
     public boolean floatPixelFormat;
+    /**
+     * Specify the behavior on context switch.
+     */
+    public int contextReleaseBehavior;
 
 }

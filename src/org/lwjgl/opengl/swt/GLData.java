@@ -84,6 +84,19 @@ public class GLData {
     public static final int OPENGL_COMPATIBILITY_PROFILE = 2;
 
     /**
+     * Constant for doing nothing on context switch.
+     * 
+     * @see #contextReleaseBehavior
+     */
+    public static final int CONTEXT_RELEASE_BEHAVIOR_NONE = 1;
+    /**
+     * Constant for flushing GL pipeline on context switch.
+     * 
+     * @see #contextReleaseBehavior
+     */
+    public static final int CONTEXT_RELEASE_BEHAVIOR_FLUSH = 2;
+
+    /**
      * The major GL context version to use. It defaults to 0 for "not specified".
      */
     public int majorVersion;
@@ -119,6 +132,10 @@ public class GLData {
      * Whether to use a floating point pixel format.
      */
     public boolean pixelFormatFloat;
+    /**
+     * Specify the behavior on context switch.
+     */
+    public int contextReleaseBehavior;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -149,6 +166,7 @@ public class GLData {
         attribs.swapInterval = swapInterval;
         attribs.sRGB = sRGB;
         attribs.floatPixelFormat = pixelFormatFloat;
+        attribs.contextReleaseBehavior = contextReleaseBehavior;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }
