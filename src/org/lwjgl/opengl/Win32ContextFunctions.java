@@ -1,7 +1,5 @@
 package org.lwjgl.opengl;
 
-import static org.lwjgl.system.MemoryUtil.memAddressSafe;
-
 import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -96,6 +94,11 @@ public class Win32ContextFunctions implements ContextFunctions {
         ib.put(WGLARBPixelFormat.WGL_ALPHA_BITS_ARB).put(attribs.alphaSize);
         ib.put(WGLARBPixelFormat.WGL_DEPTH_BITS_ARB).put(attribs.depthSize);
         ib.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB).put(attribs.stencilSize);
+        ib.put(WGLARBPixelFormat.WGL_ACCUM_RED_BITS_ARB).put(attribs.accumRedSize);
+        ib.put(WGLARBPixelFormat.WGL_ACCUM_GREEN_BITS_ARB).put(attribs.accumGreenSize);
+        ib.put(WGLARBPixelFormat.WGL_ACCUM_BLUE_BITS_ARB).put(attribs.accumBlueSize);
+        ib.put(WGLARBPixelFormat.WGL_ACCUM_ALPHA_BITS_ARB).put(attribs.accumAlphaSize);
+        ib.put(WGLARBPixelFormat.WGL_ACCUM_BITS_ARB).put(attribs.accumRedSize + attribs.accumGreenSize + attribs.accumBlueSize + attribs.accumAlphaSize);
         if (attribs.sRGB)
             ib.put(WGLEXTFramebufferSRGB.WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT).put(1);
         if (attribs.samples > 1) {
@@ -169,6 +172,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
 
         APIBuffer buffer = APIUtil.apiBuffer();
+        long bufferAddr = buffer.address();
 
         // Save current context to restore it later
         long currentContext = JNI.callP(wgl.GetCurrentContext);
@@ -271,8 +275,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("No support for wglCreateContextAttribsARB. Cannot create OpenGL context.");
         }
 
-        IntBuffer attribList = BufferUtils.createIntBuffer(32);
-        long attribListAddr = memAddressSafe(attribList);
+        IntBuffer attribList = BufferUtils.createIntBuffer(64);
+        long attribListAddr = MemoryUtil.memAddress(attribList);
         long hDC = User32.GetDC(windowHandle);
 
         // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
@@ -295,20 +299,18 @@ public class Win32ContextFunctions implements ContextFunctions {
                     throw new OpenGLContextException("Multisampling requested but WGL_ARB_multisample is unavailable");
                 }
             }
+            // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
-            // Obtain device context of the real window
-            IntBuffer piFormats = BufferUtils.createIntBuffer(2);
-            long piFormatsAddr = memAddressSafe(piFormats);
-            int succ = JNI.callPPPIPPI(wglChoosePixelFormatARBAddr, hDC, attribListAddr, 0L, 1, piFormatsAddr + 4, piFormatsAddr);
-            int numFormats = piFormats.get(0);
+            int succ = JNI.callPPPIPPI(wglChoosePixelFormatARBAddr, hDC, attribListAddr, 0L, 1, bufferAddr + 4, bufferAddr);
+            int numFormats = buffer.buffer().getInt(0);
             if (succ == 0 || numFormats == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("No supported pixel format found.");
             }
-            pixelFormat = piFormats.get(1);
-            // Describe pixel format
+            pixelFormat = buffer.buffer().getInt(4);
+            // Describe pixel format for the PIXELFORMATDESCRIPTOR to match the chosen format
             int pixFmtIndex = GDI32.DescribePixelFormat(hDC, pixelFormat, pfd);
             if (pixFmtIndex == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
