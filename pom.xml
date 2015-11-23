@@ -10,6 +10,7 @@
 	</properties>
 	<profiles>
 		<profile>
+			<id>windows</id>
 			<activation>
 				<os>
 					<family>Windows</family>
@@ -25,6 +26,7 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>windows-x86</id>
 			<activation>
 				<os>
 					<family>Windows</family>
@@ -40,6 +42,7 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>windows-amd64</id>
 			<activation>
 				<os>
 					<family>Windows</family>
@@ -55,6 +58,7 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>linux</id>
 			<activation>
 				<os>
 					<family>Linux</family>
@@ -70,6 +74,7 @@
 			</dependencies>
 		</profile>
 		<profile>
+			<id>mac</id>
 			<activation>
 				<os>
 					<family>Mac</family>
