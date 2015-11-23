@@ -14,6 +14,7 @@ import org.lwjgl.opengl.WGLARBPixelFormat;
 import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.JNI;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.windows.GDI32;
 import org.lwjgl.system.windows.PIXELFORMATDESCRIPTOR;
 import org.lwjgl.system.windows.User32;
@@ -174,10 +175,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         long currentDc = JNI.callP(wgl.GetCurrentDC);
 
         // For some constellations of context attributes, we can stop right here.
-        if (!atLeast30(attribs.majorVersion, attribs.minorVersion)
-                && attribs.samples <= 1
-                && !attribs.sRGB
-                && !attribs.floatPixelFormat
+        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1 && !attribs.sRGB && !attribs.floatPixelFormat
                 && attribs.contextReleaseBehavior == 0) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
 
@@ -283,8 +281,24 @@ public class Win32ContextFunctions implements ContextFunctions {
         } else if (attribs.profile == GLContextAttributes.OPENGL_CORE_PROFILE) {
             profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
         }
-        if (profile > 0)
+        if (profile > 0) {
+            procEncoded = buffer.stringParamASCII("wglGetExtensionsStringARB", true);
+            adr = buffer.address(procEncoded);
+            long wglGetExtensionsStringARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            long str = JNI.callPP(wglGetExtensionsStringARBAddr, hDC);
+            boolean has_WGL_ARB_create_context_profile = false;
+            if (str != 0L) {
+                String wglExtensions = MemoryUtil.memDecodeASCII(str);
+                has_WGL_ARB_create_context_profile = wglExtensions.contains("WGL_ARB_create_context_profile");
+            }
+            if (!has_WGL_ARB_create_context_profile) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("OpenGL profile requested but WGL_ARB_create_context_profile is unavailable");
+            }
             attribList.put(WGLARBCreateContextProfile.WGL_CONTEXT_PROFILE_MASK_ARB).put(profile);
+        }
         int contextFlags = 0;
         if (attribs.debug) {
             contextFlags |= WGLARBCreateContext.WGL_CONTEXT_DEBUG_BIT_ARB;
