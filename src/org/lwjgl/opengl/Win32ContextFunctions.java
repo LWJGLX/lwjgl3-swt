@@ -163,7 +163,7 @@ public class Win32ContextFunctions implements ContextFunctions {
          * OpenGL >= 3.0 context and with optional multisampling.
          */
         long dummyContext = JNI.callPP(wgl.CreateContext, hDCdummy);
-        if (dummyContext == 0) {
+        if (dummyContext == 0L) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
             throw new OpenGLContextException("Failed to create OpenGL context");
         }
@@ -174,22 +174,66 @@ public class Win32ContextFunctions implements ContextFunctions {
         long currentContext = JNI.callP(wgl.GetCurrentContext);
         long currentDc = JNI.callP(wgl.GetCurrentDC);
 
+        // Make the new dummy context current
+        int success = JNI.callPPI(wgl.MakeCurrent, hDCdummy, dummyContext);
+        if (success == 0) {
+            User32.ReleaseDC(dummyWindowHandle, hDCdummy);
+            JNI.callPI(wgl.DeleteContext, dummyContext);
+            throw new OpenGLContextException("Failed to make OpenGL context current");
+        }
+
+        // Query supported WGL extensions
+        String wglExtensions = null;
+        int procEncoded = buffer.stringParamASCII("wglGetExtensionsStringARB", true);
+        long adr = buffer.address(procEncoded);
+        long wglGetExtensionsStringARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
+        if (wglGetExtensionsStringARBAddr != 0L) {
+            long str = JNI.callPP(wglGetExtensionsStringARBAddr, hDCdummy);
+            if (str != 0L) {
+                wglExtensions = MemoryUtil.memDecodeASCII(str);
+            } else {
+                wglExtensions = "";
+            }
+        } else {
+            wglExtensions = "";
+        }
+
+        success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
+        if (success == 0) {
+            JNI.callPI(wgl.DeleteContext, dummyContext);
+            JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+            throw new OpenGLContextException("Could not release dummy DC");
+        }
+
         // For some constellations of context attributes, we can stop right here.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1 && !attribs.sRGB && !attribs.floatPixelFormat
                 && attribs.contextReleaseBehavior == 0) {
-            User32.ReleaseDC(dummyWindowHandle, hDCdummy);
-
             /* Finally, create the real context on the real window */
             long hDC = User32.GetDC(windowHandle);
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
-            JNI.callPI(wgl.DeleteContext, dummyContext);
+            success = JNI.callPI(wgl.DeleteContext, dummyContext);
+            if (success == 0) {
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Could not delete dummy GL context");
+            }
             long context = JNI.callPP(wgl.CreateContext, hDC);
 
             if (attribs.swapInterval > 0) {
+                boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
+                if (!has_WGL_EXT_swap_control) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Swap interval requested but WGL_EXT_swap_control is unavailable");
+                }
                 // Make context current to set the swap interval
-                JNI.callPPI(wgl.MakeCurrent, hDC, context);
-                int procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
-                long adr = buffer.address(procEncoded);
+                success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
+                if (success == 0) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Could not make GL context current");
+                }
+                procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
+                adr = buffer.address(procEncoded);
                 long wglSwapIntervalEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
                 if (wglSwapIntervalEXTAddr != 0L) {
                     JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
@@ -198,13 +242,18 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             }
 
-            User32.ReleaseDC(windowHandle, hDC);
+            success = User32.ReleaseDC(windowHandle, hDC);
+            if (success == 0) {
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Could not release DC");
+            }
 
             /* Check if we want to share context */
             if (attribs.shareContext != 0L) {
                 int succ = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
                 if (succ == 0) {
                     JNI.callPI(wgl.DeleteContext, context);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     throw new OpenGLContextException("Failed while configuring context sharing.");
                 }
             }
@@ -212,18 +261,9 @@ public class Win32ContextFunctions implements ContextFunctions {
             return context;
         }
 
-        // Make the new dummy context current
-        int success = JNI.callPPI(wgl.MakeCurrent, hDCdummy, dummyContext);
-        User32.ReleaseDC(windowHandle, hDCdummy);
-        if (success == 0) {
-            JNI.callPI(wgl.DeleteContext, dummyContext);
-            JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-            throw new OpenGLContextException("Failed to make OpenGL context current");
-        }
-
         // Obtain wglCreateContextAttribsARB function pointer
-        int procEncoded = buffer.stringParamASCII("wglCreateContextAttribsARB", true);
-        long adr = buffer.address(procEncoded);
+        procEncoded = buffer.stringParamASCII("wglCreateContextAttribsARB", true);
+        adr = buffer.address(procEncoded);
         long wglCreateContextAttribsARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
         if (wglCreateContextAttribsARBAddr == 0L) {
             JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -234,22 +274,6 @@ public class Win32ContextFunctions implements ContextFunctions {
         IntBuffer attribList = BufferUtils.createIntBuffer(32);
         long attribListAddr = memAddressSafe(attribList);
         long hDC = User32.GetDC(windowHandle);
-
-        // Query supported WGL extensions
-        String wglExtensions = null;
-        procEncoded = buffer.stringParamASCII("wglGetExtensionsStringARB", true);
-        adr = buffer.address(procEncoded);
-        long wglGetExtensionsStringARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
-        if (wglGetExtensionsStringARBAddr != 0L) {
-            long str = JNI.callPP(wglGetExtensionsStringARBAddr, hDC);
-            if (str != 0L) {
-                wglExtensions = MemoryUtil.memDecodeASCII(str);
-            } else {
-                wglExtensions = "";
-            }
-        } else {
-            wglExtensions = "";
-        }
 
         // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
         if (attribs.samples > 1 || attribs.sRGB || attribs.floatPixelFormat) {
@@ -325,10 +349,20 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         if (contextFlags > 0)
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB).put(contextFlags);
-        if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE)
-            attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB);
-        else if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)
-            attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB);
+        if (attribs.contextReleaseBehavior > 0) {
+            boolean has_WGL_ARB_context_flush_control = wglExtensions.contains("WGL_ARB_context_flush_control");
+            if (!has_WGL_ARB_context_flush_control) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Context release behaviour requested but WGL_ARB_context_flush_control is unavailable");
+            }
+            if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE)
+                attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB);
+            else if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)
+                attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB)
+                        .put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB);
+        }
         attribList.put(0).put(0);
         // Set pixelformat
         int succ = GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
@@ -342,12 +376,18 @@ public class Win32ContextFunctions implements ContextFunctions {
         long newCtx = JNI.callPPPP(wglCreateContextAttribsARBAddr, hDC, attribs.shareContext, attribListAddr);
         if (newCtx == 0L) {
             User32.ReleaseDC(windowHandle, hDC);
-            // Make old context current
+            JNI.callPI(wgl.DeleteContext, dummyContext);
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-            // Could not create new context
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
         if (attribs.swapInterval > 0) {
+            boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
+            if (!has_WGL_EXT_swap_control) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Swap interval requested but WGL_EXT_swap_control is unavailable");
+            }
             // Make context current to set the swap interval
             JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
