@@ -98,5 +98,13 @@ public class GLContextAttributes {
      * Set the swap interval.
      */
     public int swapInterval;
+    /**
+     * Whether to use sRGB color space.
+     */
+    public boolean sRGB;
+    /**
+     * Whether to use a floating point pixel format.
+     */
+    public boolean floatPixelFormat;
 
 }

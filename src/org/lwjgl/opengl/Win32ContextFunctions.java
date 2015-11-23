@@ -26,6 +26,7 @@ import org.lwjgl.system.windows.User32;
 public class Win32ContextFunctions implements ContextFunctions {
 
     private static final WGL wgl;
+
     static {
         // Cache the WGL instance
         wgl = new WGL(GL.getFunctionProvider());
@@ -84,13 +85,18 @@ public class Win32ContextFunctions implements ContextFunctions {
         ib.put(WGLARBPixelFormat.WGL_ACCELERATION_ARB).put(WGLARBPixelFormat.WGL_FULL_ACCELERATION_ARB);
         if (attribs.doubleBuffer)
             ib.put(WGLARBPixelFormat.WGL_DOUBLE_BUFFER_ARB).put(1);
-        ib.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB).put(WGLARBPixelFormat.WGL_TYPE_RGBA_ARB);
+        if (attribs.floatPixelFormat)
+            ib.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB).put(WGLARBPixelFormatFloat.WGL_TYPE_RGBA_FLOAT_ARB);
+        else
+            ib.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB).put(WGLARBPixelFormat.WGL_TYPE_RGBA_ARB);
         ib.put(WGLARBPixelFormat.WGL_RED_BITS_ARB).put(attribs.redSize);
         ib.put(WGLARBPixelFormat.WGL_GREEN_BITS_ARB).put(attribs.greenSize);
         ib.put(WGLARBPixelFormat.WGL_BLUE_BITS_ARB).put(attribs.blueSize);
         ib.put(WGLARBPixelFormat.WGL_ALPHA_BITS_ARB).put(attribs.alphaSize);
         ib.put(WGLARBPixelFormat.WGL_DEPTH_BITS_ARB).put(attribs.depthSize);
         ib.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB).put(attribs.stencilSize);
+        if (attribs.sRGB)
+            ib.put(WGLEXTFramebufferSRGB.WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT).put(1);
         if (attribs.samples > 1) {
             ib.put(WGLARBMultisample.WGL_SAMPLE_BUFFERS_ARB).put(1);
             ib.put(WGLARBMultisample.WGL_SAMPLES_ARB).put(attribs.samples);
@@ -167,8 +173,8 @@ public class Win32ContextFunctions implements ContextFunctions {
         long currentContext = JNI.callP(wgl.GetCurrentContext);
         long currentDc = JNI.callP(wgl.GetCurrentDC);
 
-        // If version was < 3.0 and no multisampling is requested, we are done.
-        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1) {
+        // If version was < 3.0 and no multisampling is requested and also no sRGB and no floating point pixel format, we are done.
+        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1 && !attribs.sRGB && !attribs.floatPixelFormat) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
 
             /* Finally, create the real context on the real window */
@@ -227,8 +233,8 @@ public class Win32ContextFunctions implements ContextFunctions {
         long attribListAddr = memAddressSafe(attribList);
         long hDC = User32.GetDC(windowHandle);
 
-        // Obtain wglChoosePixelFormatARB if multisampling is requested
-        if (attribs.samples > 1) {
+        // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
+        if (attribs.samples > 1 || attribs.sRGB || attribs.floatPixelFormat) {
             procEncoded = buffer.stringParamASCII("wglChoosePixelFormatARB", true);
             adr = buffer.address(procEncoded);
             long wglChoosePixelFormatARBAddr = JNI.callPP(wgl.GetProcAddress, adr);

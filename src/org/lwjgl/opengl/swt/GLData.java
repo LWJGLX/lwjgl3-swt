@@ -111,6 +111,14 @@ public class GLData {
      * Set the swap interval.
      */
     public int swapInterval;
+    /**
+     * Whether to use sRGB color space.
+     */
+    public boolean sRGB;
+    /**
+     * Whether to use a floating point pixel format.
+     */
+    public boolean pixelFormatFloat;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -139,6 +147,8 @@ public class GLData {
         attribs.stencilSize = stencilSize;
         attribs.stereo = stereo;
         attribs.swapInterval = swapInterval;
+        attribs.sRGB = sRGB;
+        attribs.floatPixelFormat = pixelFormatFloat;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }
