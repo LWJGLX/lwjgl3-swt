@@ -18,7 +18,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GLCapabilities;
 
 /**
  * SWT with OpenGL 3.3 core, multisampling and v-sync.
@@ -40,13 +39,13 @@ public class Swt33CoreMsDemo {
 		shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
 		GLData data = new GLData();
 		data.majorVersion = 3;
-		data.minorVersion = 1;
+		data.minorVersion = 3;
+		data.profile = GLData.OPENGL_CORE_PROFILE;
 		data.samples = 4;
 		data.swapInterval = 1;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
 		canvas.setCurrent();
-		GLCapabilities caps = GL.createCapabilities();
-		System.err.println(caps.WGL_ARB_context_flush_control);
+		GL.createCapabilities();
 
 		final Rectangle rect = new Rectangle(0, 0, 0, 0);
 		canvas.addListener(SWT.Resize, new Listener() {
