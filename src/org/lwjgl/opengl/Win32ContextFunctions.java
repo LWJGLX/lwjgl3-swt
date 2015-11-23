@@ -235,6 +235,22 @@ public class Win32ContextFunctions implements ContextFunctions {
         long attribListAddr = memAddressSafe(attribList);
         long hDC = User32.GetDC(windowHandle);
 
+        // Query supported WGL extensions
+        String wglExtensions = null;
+        procEncoded = buffer.stringParamASCII("wglGetExtensionsStringARB", true);
+        adr = buffer.address(procEncoded);
+        long wglGetExtensionsStringARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
+        if (wglGetExtensionsStringARBAddr != 0L) {
+            long str = JNI.callPP(wglGetExtensionsStringARBAddr, hDC);
+            if (str != 0L) {
+                wglExtensions = MemoryUtil.memDecodeASCII(str);
+            } else {
+                wglExtensions = "";
+            }
+        } else {
+            wglExtensions = "";
+        }
+
         // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
         if (attribs.samples > 1 || attribs.sRGB || attribs.floatPixelFormat) {
             procEncoded = buffer.stringParamASCII("wglChoosePixelFormatARB", true);
@@ -245,6 +261,15 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("No support for wglChoosePixelFormatARB. Cannot query supported pixel formats.");
+            }
+            if (attribs.samples > 1) {
+                boolean has_WGL_ARB_multisample = wglExtensions.contains("WGL_ARB_multisample");
+                if (!has_WGL_ARB_multisample) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Multisampling requested but WGL_ARB_multisample is unavailable");
+                }
             }
             encodePixelFormatAttribs(attribList, attribs);
             // Obtain device context of the real window
@@ -282,15 +307,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
         }
         if (profile > 0) {
-            procEncoded = buffer.stringParamASCII("wglGetExtensionsStringARB", true);
-            adr = buffer.address(procEncoded);
-            long wglGetExtensionsStringARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
-            long str = JNI.callPP(wglGetExtensionsStringARBAddr, hDC);
-            boolean has_WGL_ARB_create_context_profile = false;
-            if (str != 0L) {
-                String wglExtensions = MemoryUtil.memDecodeASCII(str);
-                has_WGL_ARB_create_context_profile = wglExtensions.contains("WGL_ARB_create_context_profile");
-            }
+            boolean has_WGL_ARB_create_context_profile = wglExtensions.contains("WGL_ARB_create_context_profile");
             if (!has_WGL_ARB_create_context_profile) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
