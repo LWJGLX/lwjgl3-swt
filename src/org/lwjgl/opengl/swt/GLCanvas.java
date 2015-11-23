@@ -25,7 +25,7 @@ public class GLCanvas extends Canvas {
     public GLCanvas(Composite parent, int style, GLData data) {
         super(parent, checkStyle(parent, style));
         Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
-        parent.getDisplay().setData(USE_OWNDC_KEY, new Boolean(false));
+        parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.FALSE);
         GLContextAttributes contextAttribs = data.toContextAttributes();
         try {
             context = GLContext.create(handle, dummycanvas.handle, contextAttribs);
@@ -50,9 +50,9 @@ public class GLCanvas extends Canvas {
         // Somehow we need to temporarily set 'org.eclipse.swt.internal.win32.useOwnDC'
         // to true or else context creation on Windows fails...
         if (parent != null) {
-            if (!org.eclipse.swt.internal.win32.OS.IsWinCE && 
-                    org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
-                parent.getDisplay().setData(USE_OWNDC_KEY, new Boolean(true));
+            if (!org.eclipse.swt.internal.win32.OS.IsWinCE
+                    && org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
+                parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
             }
         }
         return style;

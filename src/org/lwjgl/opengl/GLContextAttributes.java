@@ -110,7 +110,7 @@ public class GLContextAttributes {
     /**
      * Set the swap interval.
      */
-    public int swapInterval;
+    public Integer swapInterval;
     /**
      * Whether to use sRGB color space.
      */

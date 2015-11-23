@@ -222,7 +222,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             long context = JNI.callPP(wgl.CreateContext, hDC);
 
-            if (attribs.swapInterval > 0) {
+            if (attribs.swapInterval != null) {
                 boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
                 if (!has_WGL_EXT_swap_control) {
                     User32.ReleaseDC(windowHandle, hDC);
@@ -382,7 +382,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
-        if (attribs.swapInterval > 0) {
+        if (attribs.swapInterval != null) {
             boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
             if (!has_WGL_EXT_swap_control) {
                 User32.ReleaseDC(windowHandle, hDC);
