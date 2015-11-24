@@ -86,7 +86,7 @@ public class GLContextAttributes {
      */
     public int sampleBuffers;
     /**
-     * The number of samples for multisampling. Multisampling will only be requested for a value greater than or equal to 1.
+     * The number of (coverage) samples for multisampling. Multisampling will only be requested for a value greater than or equal to 1.
      */
     public int samples;
     /**
@@ -133,7 +133,7 @@ public class GLContextAttributes {
      */
     public int contextReleaseBehavior;
     /**
-     * The number of color samples per pixel.
+     * The number of color samples per pixel. This is only valid when {@link #samples} is at least 1.
      */
     public int colorSamplesNV;
     /**
