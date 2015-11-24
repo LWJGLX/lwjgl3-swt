@@ -275,6 +275,15 @@ public class Win32ContextFunctions implements ContextFunctions {
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     throw new OpenGLContextException("Swap interval requested but WGL_EXT_swap_control is unavailable");
                 }
+                if (attribs.swapInterval < 0) {
+                    // Only allowed if WGL_EXT_swap_control_tear is available
+                    boolean has_WGL_EXT_swap_control_tear = wglExtensions.contains("WGL_EXT_swap_control_tear");
+                    if (!has_WGL_EXT_swap_control_tear) {
+                        User32.ReleaseDC(windowHandle, hDC);
+                        JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                        throw new OpenGLContextException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
+                    }
+                }
                 // Make context current to set the swap interval
                 success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
                 if (success == 0) {
@@ -444,6 +453,16 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("Swap interval requested but WGL_EXT_swap_control is unavailable");
+            }
+            if (attribs.swapInterval < 0) {
+                // Only allowed if WGL_EXT_swap_control_tear is available
+                boolean has_WGL_EXT_swap_control_tear = wglExtensions.contains("WGL_EXT_swap_control_tear");
+                if (!has_WGL_EXT_swap_control_tear) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
+                }
             }
             // Make context current to set the swap interval
             JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
