@@ -95,6 +95,9 @@ public class Win32ContextFunctions implements ContextFunctions {
                  attribs.contextReleaseBehavior > GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)) {
             throw new IllegalArgumentException("Invalid context release behavior");
         }
+        if (!attribs.doubleBuffer && attribs.swapInterval != null) {
+            throw new IllegalArgumentException("Swap interval set but not using double buffering");
+        }
     }
 
     /**

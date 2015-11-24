@@ -62,8 +62,17 @@ public class GLData {
      * The number of bits for the alpha accumulator color channel. It defaults to 0.
      */
     public int accumAlphaSize;
+    /**
+     * This is ignored. It will implicitly be 1 if {@link #samples} is set to a value greater than 1.
+     */
     public int sampleBuffers;
+    /**
+     * The number of samples for multisampling. Multisampling will only be requested for a value greater than 1.
+     */
     public int samples;
+    /**
+     * The {@link GLCanvas} whose context objects should be shared with the context created using <code>this</code> GLData.
+     */
     public GLCanvas shareContext;
 
     /*
