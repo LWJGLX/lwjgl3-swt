@@ -331,7 +331,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 }
                 success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
                 try {
-                    wglNvSwapGroup(windowHandle, attribs, buffer, hDC);
+                    wglNvSwapGroup(windowHandle, attribs, buffer, bufferAddr, hDC);
                 } catch (OpenGLContextException e) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -551,7 +551,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             // Make context current to join swap group
             success = JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             try {
-                wglNvSwapGroup(windowHandle, attribs, buffer, hDC);
+                wglNvSwapGroup(windowHandle, attribs, buffer, bufferAddr, hDC);
             } catch (OpenGLContextException e) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -564,7 +564,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         return newCtx;
     }
 
-    private void wglNvSwapGroup(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long hDC) throws OpenGLContextException {
+    private void wglNvSwapGroup(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long bufferAddr, long hDC) throws OpenGLContextException {
         int success;
         int procEncoded;
         long adr;
@@ -577,12 +577,11 @@ public class Win32ContextFunctions implements ContextFunctions {
         procEncoded = buffer.stringParamASCII("wglQueryMaxSwapGroupsNV", true);
         adr = buffer.address(procEncoded);
         long wglQueryMaxSwapGroupsNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
-        IntBuffer maxGroups = BufferUtils.createIntBuffer(2);
-        success = JNI.callPPPI(wglQueryMaxSwapGroupsNVAddr, hDC, MemoryUtil.memAddress(maxGroups), MemoryUtil.memAddress(maxGroups) + 4);
-        if (maxGroups.get(0) > attribs.swapGroupNV) {
+        success = JNI.callPPPI(wglQueryMaxSwapGroupsNVAddr, hDC, bufferAddr, bufferAddr + 4);
+        if (buffer.buffer().getInt(0) > attribs.swapGroupNV) {
             throw new OpenGLContextException("Swap group exceeds maximum group index");
         }
-        if (maxGroups.get(1) > attribs.swapBarrierNV) {
+        if (buffer.buffer().getInt(4) > attribs.swapBarrierNV) {
             throw new OpenGLContextException("Swap barrier exceeds maximum group index");
         }
         success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
