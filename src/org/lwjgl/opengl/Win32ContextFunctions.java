@@ -101,8 +101,8 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.colorSamplesNV < 0) {
             throw new IllegalArgumentException("Invalid color samples count");
         }
-        if (attribs.colorSamplesNV > 0 && attribs.samples == 0) {
-            throw new IllegalArgumentException("Color samples greater than 0 but number of (coverage) samples is 0");
+        if (attribs.colorSamplesNV > attribs.samples) {
+            throw new IllegalArgumentException("Color samples greater than number of (coverage) samples");
         }
         if (attribs.swapGroupNV < 0) {
             throw new IllegalArgumentException("Invalid swap group");
