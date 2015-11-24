@@ -118,10 +118,6 @@ public class GLData {
      */
     public boolean forwardCompatible;
     /**
-     * Whether a context with the compatibility profile should be created.
-     */
-    public boolean compatibility;
-    /**
      * The profile to use. Defaults to 0, which means "not specified".
      */
     public int profile;
