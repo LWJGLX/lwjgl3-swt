@@ -384,6 +384,26 @@ public class Win32ContextFunctions implements ContextFunctions {
                     }
                 }
             }
+            if (attribs.sRGB) {
+                // Check for WGL_EXT_framebuffer_sRGB
+                boolean has_WGL_EXT_framebuffer_sRGB = wglExtensions.contains("WGL_EXT_framebuffer_sRGB");
+                if (!has_WGL_EXT_framebuffer_sRGB) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("sRGB color space requested but WGL_EXT_framebuffer_sRGB is unavailable");
+                }
+            }
+            if (attribs.floatPixelFormat) {
+                // Check for WGL_ARB_pixel_format_float
+                boolean has_WGL_ARB_pixel_format_float = wglExtensions.contains("WGL_ARB_pixel_format_float");
+                if (!has_WGL_ARB_pixel_format_float) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Floating-point format requested but WGL_ARB_pixel_format_float is unavailable");
+                }
+            }
             // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
             int succ = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, bufferAddr + 4, bufferAddr);
