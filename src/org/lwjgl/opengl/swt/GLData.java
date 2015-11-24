@@ -145,6 +145,14 @@ public class GLData {
      * The number of color samples per pixel.
      */
     public int colorSamplesNV;
+    /**
+     * The swap group index;
+     */
+    public int swapGroupNV;
+    /**
+     * The swap barrier index;
+     */
+    public int swapBarrierNV;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -177,6 +185,8 @@ public class GLData {
         attribs.floatPixelFormat = pixelFormatFloat;
         attribs.contextReleaseBehavior = contextReleaseBehavior;
         attribs.colorSamplesNV = colorSamplesNV;
+        attribs.swapGroupNV = swapGroupNV;
+        attribs.swapBarrierNV = swapBarrierNV;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }

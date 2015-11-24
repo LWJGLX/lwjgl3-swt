@@ -136,5 +136,13 @@ public class GLContextAttributes {
      * The number of color samples per pixel.
      */
     public int colorSamplesNV;
+    /**
+     * The swap group index.
+     */
+    public int swapGroupNV;
+    /**
+     * The swap barrier index.
+     */
+    public int swapBarrierNV;
 
 }

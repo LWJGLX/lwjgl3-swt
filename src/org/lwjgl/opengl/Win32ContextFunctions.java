@@ -104,6 +104,15 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.colorSamplesNV > 0 && attribs.samples == 0) {
             throw new IllegalArgumentException("Color samples greater than 0 but number of (coverage) samples is 0");
         }
+        if (attribs.swapGroupNV < 0) {
+            throw new IllegalArgumentException("Invalid swap group");
+        }
+        if (attribs.swapBarrierNV < 0) {
+            throw new IllegalArgumentException("Invalid swap barrier");
+        }
+        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV == 0) {
+            throw new IllegalArgumentException("Swap group requested but no valid swap barrier set");
+        }
     }
 
     /**
@@ -310,13 +319,30 @@ public class Win32ContextFunctions implements ContextFunctions {
                 if (wglSwapIntervalEXTAddr != 0L) {
                     JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
                 }
-                // Restore old context
-                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+            }
+
+            if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
+                // Only allowed if WGL_NV_swap_group is available
+                boolean has_WGL_NV_swap_group = wglExtensions.contains("WGL_NV_swap_group");
+                if (!has_WGL_NV_swap_group) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Swap group requested but WGL_NV_swap_group is unavailable");
+                }
+                success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
+                try {
+                    wglNvSwapGroup(windowHandle, attribs, buffer, hDC);
+                } catch (OpenGLContextException e) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw e;
+                }
             }
 
             success = User32.ReleaseDC(windowHandle, hDC);
             if (success == 0) {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                JNI.callPI(wgl.DeleteContext, context);
                 throw new OpenGLContextException("Could not release DC");
             }
 
@@ -324,12 +350,14 @@ public class Win32ContextFunctions implements ContextFunctions {
             if (attribs.shareContext != 0L) {
                 int succ = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
                 if (succ == 0) {
-                    JNI.callPI(wgl.DeleteContext, context);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    JNI.callPI(wgl.DeleteContext, context);
                     throw new OpenGLContextException("Failed while configuring context sharing.");
                 }
             }
 
+            // Restore old context
+            JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             return context;
         }
 
@@ -481,9 +509,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         // And create new context with it
         long newCtx = JNI.callPPPP(wglCreateContextAttribsARBAddr, hDC, attribs.shareContext, attribListAddr);
+        JNI.callPI(wgl.DeleteContext, dummyContext);
         if (newCtx == 0L) {
             User32.ReleaseDC(windowHandle, hDC);
-            JNI.callPI(wgl.DeleteContext, dummyContext);
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
@@ -491,7 +519,6 @@ public class Win32ContextFunctions implements ContextFunctions {
             boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
             if (!has_WGL_EXT_swap_control) {
                 User32.ReleaseDC(windowHandle, hDC);
-                JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("Swap interval requested but WGL_EXT_swap_control is unavailable");
             }
@@ -500,7 +527,6 @@ public class Win32ContextFunctions implements ContextFunctions {
                 boolean has_WGL_EXT_swap_control_tear = wglExtensions.contains("WGL_EXT_swap_control_tear");
                 if (!has_WGL_EXT_swap_control_tear) {
                     User32.ReleaseDC(windowHandle, hDC);
-                    JNI.callPI(wgl.DeleteContext, dummyContext);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     throw new OpenGLContextException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
                 }
@@ -514,12 +540,60 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
             }
         }
+        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
+            // Only allowed if WGL_NV_swap_group is available
+            boolean has_WGL_NV_swap_group = wglExtensions.contains("WGL_NV_swap_group");
+            if (!has_WGL_NV_swap_group) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Swap group requested but WGL_NV_swap_group is unavailable");
+            }
+            // Make context current to join swap group
+            success = JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
+            try {
+                wglNvSwapGroup(windowHandle, attribs, buffer, hDC);
+            } catch (OpenGLContextException e) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw e;
+            }
+        }
         User32.ReleaseDC(windowHandle, hDC);
         // Restore old context
         JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-        // Destroy dummy context
-        JNI.callPI(wgl.DeleteContext, dummyContext);
         return newCtx;
+    }
+
+    private void wglNvSwapGroup(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long hDC) throws OpenGLContextException {
+        int success;
+        int procEncoded;
+        long adr;
+        procEncoded = buffer.stringParamASCII("wglJoinSwapGroupNV", true);
+        adr = buffer.address(procEncoded);
+        long wglJoinSwapGroupNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+        procEncoded = buffer.stringParamASCII("wglBindSwapBarrierNV", true);
+        adr = buffer.address(procEncoded);
+        long wglBindSwapBarrierNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+        procEncoded = buffer.stringParamASCII("wglQueryMaxSwapGroupsNV", true);
+        adr = buffer.address(procEncoded);
+        long wglQueryMaxSwapGroupsNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+        IntBuffer maxGroups = BufferUtils.createIntBuffer(2);
+        success = JNI.callPPPI(wglQueryMaxSwapGroupsNVAddr, hDC, MemoryUtil.memAddress(maxGroups), MemoryUtil.memAddress(maxGroups) + 4);
+        if (maxGroups.get(0) > attribs.swapGroupNV) {
+            throw new OpenGLContextException("Swap group exceeds maximum group index");
+        }
+        if (maxGroups.get(1) > attribs.swapBarrierNV) {
+            throw new OpenGLContextException("Swap barrier exceeds maximum group index");
+        }
+        success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
+        if (success == 0) {
+            throw new OpenGLContextException("Failed to join swap group");
+        }
+        success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
+        if (success == 0) {
+            JNI.callPII(wglJoinSwapGroupNVAddr, hDC, 0);
+            throw new OpenGLContextException("Failed to bind swap barrier. Probably no G-Sync card installed.");
+        }
     }
 
     public boolean isCurrent(long context) {
