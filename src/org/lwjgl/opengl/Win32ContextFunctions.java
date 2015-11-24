@@ -40,8 +40,12 @@ public class Win32ContextFunctions implements ContextFunctions {
     }
 
     private static boolean validVersion(int major, int minor) {
-        return (major >= 1 && minor >= 0) && (major != 1 || minor <= 5) && (major != 2 || minor <= 1) && (major != 3 || minor <= 3)
-                && (major != 4 || minor <= 5);
+        return (major == 0 && minor == 0) ||
+               (major >= 1 && minor >= 0) &&
+               (major != 1 || minor <= 5) &&
+               (major != 2 || minor <= 1) &&
+               (major != 3 || minor <= 3) &&
+               (major != 4 || minor <= 5);
     }
 
     /**
@@ -72,7 +76,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
-        if (attribs.profile != 0 && (attribs.profile < GLContextAttributes.OPENGL_CORE_PROFILE || attribs.profile > GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE)) {
+        if (attribs.profile != 0
+                && (attribs.profile < GLContextAttributes.OPENGL_CORE_PROFILE ||
+                    attribs.profile > GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE)) {
             throw new IllegalArgumentException("Invalid profile.");
         }
         if (attribs.samples < 0) {
@@ -84,13 +90,17 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (!validVersion(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Invalid OpenGL version");
         }
-        if (attribs.contextReleaseBehavior != 0 && 
+        if (attribs.contextReleaseBehavior != 0 &&
                 (attribs.contextReleaseBehavior < GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE ||
                  attribs.contextReleaseBehavior > GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)) {
             throw new IllegalArgumentException("Invalid context release behavior");
         }
     }
 
+    /**
+     * Encode the pixel format attributes stored in the given {@link GLContextAttributes} into the given {@link IntBuffer} for wglChoosePixelFormatARB to
+     * consume.
+     */
     private void encodePixelFormatAttribs(IntBuffer ib, GLContextAttributes attribs) {
         ib.put(WGLARBPixelFormat.WGL_DRAW_TO_WINDOW_ARB).put(1);
         ib.put(WGLARBPixelFormat.WGL_SUPPORT_OPENGL_ARB).put(1);
@@ -101,17 +111,28 @@ public class Win32ContextFunctions implements ContextFunctions {
             ib.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB).put(WGLARBPixelFormatFloat.WGL_TYPE_RGBA_FLOAT_ARB);
         else
             ib.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB).put(WGLARBPixelFormat.WGL_TYPE_RGBA_ARB);
-        ib.put(WGLARBPixelFormat.WGL_RED_BITS_ARB).put(attribs.redSize);
-        ib.put(WGLARBPixelFormat.WGL_GREEN_BITS_ARB).put(attribs.greenSize);
-        ib.put(WGLARBPixelFormat.WGL_BLUE_BITS_ARB).put(attribs.blueSize);
-        ib.put(WGLARBPixelFormat.WGL_ALPHA_BITS_ARB).put(attribs.alphaSize);
-        ib.put(WGLARBPixelFormat.WGL_DEPTH_BITS_ARB).put(attribs.depthSize);
-        ib.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB).put(attribs.stencilSize);
-        ib.put(WGLARBPixelFormat.WGL_ACCUM_RED_BITS_ARB).put(attribs.accumRedSize);
-        ib.put(WGLARBPixelFormat.WGL_ACCUM_GREEN_BITS_ARB).put(attribs.accumGreenSize);
-        ib.put(WGLARBPixelFormat.WGL_ACCUM_BLUE_BITS_ARB).put(attribs.accumBlueSize);
-        ib.put(WGLARBPixelFormat.WGL_ACCUM_ALPHA_BITS_ARB).put(attribs.accumAlphaSize);
-        ib.put(WGLARBPixelFormat.WGL_ACCUM_BITS_ARB).put(attribs.accumRedSize + attribs.accumGreenSize + attribs.accumBlueSize + attribs.accumAlphaSize);
+        if (attribs.redSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_RED_BITS_ARB).put(attribs.redSize);
+        if (attribs.greenSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_GREEN_BITS_ARB).put(attribs.greenSize);
+        if (attribs.blueSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_BLUE_BITS_ARB).put(attribs.blueSize);
+        if (attribs.alphaSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ALPHA_BITS_ARB).put(attribs.alphaSize);
+        if (attribs.depthSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_DEPTH_BITS_ARB).put(attribs.depthSize);
+        if (attribs.stencilSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB).put(attribs.stencilSize);
+        if (attribs.accumRedSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ACCUM_RED_BITS_ARB).put(attribs.accumRedSize);
+        if (attribs.accumGreenSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ACCUM_GREEN_BITS_ARB).put(attribs.accumGreenSize);
+        if (attribs.accumBlueSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ACCUM_BLUE_BITS_ARB).put(attribs.accumBlueSize);
+        if (attribs.accumAlphaSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ACCUM_ALPHA_BITS_ARB).put(attribs.accumAlphaSize);
+        if (attribs.accumRedSize > 0 || attribs.accumGreenSize > 0 || attribs.accumBlueSize > 0 || attribs.accumAlphaSize > 0)
+            ib.put(WGLARBPixelFormat.WGL_ACCUM_BITS_ARB).put(attribs.accumRedSize + attribs.accumGreenSize + attribs.accumBlueSize + attribs.accumAlphaSize);
         if (attribs.sRGB)
             ib.put(WGLEXTFramebufferSRGB.WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT).put(1);
         if (attribs.samples > 1) {
