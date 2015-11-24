@@ -1,14 +1,10 @@
 package org.lwjgl.opengl;
 
 import java.nio.IntBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.WGL;
-import org.lwjgl.opengl.WGLARBCreateContext;
-import org.lwjgl.opengl.WGLARBCreateContextProfile;
-import org.lwjgl.opengl.WGLARBMultisample;
-import org.lwjgl.opengl.WGLARBPixelFormat;
 import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.JNI;
@@ -269,7 +265,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 wglExtensions = "";
             }
         }
-
+        List<String> wglExtensionsList = Arrays.asList(wglExtensions.split("\\s+"));
         success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
         if (success == 0) {
             JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -291,7 +287,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             long context = JNI.callPP(wgl.CreateContext, hDC);
 
             if (attribs.swapInterval != null) {
-                boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
+                boolean has_WGL_EXT_swap_control = wglExtensionsList.contains("WGL_EXT_swap_control");
                 if (!has_WGL_EXT_swap_control) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -299,7 +295,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 }
                 if (attribs.swapInterval < 0) {
                     // Only allowed if WGL_EXT_swap_control_tear is available
-                    boolean has_WGL_EXT_swap_control_tear = wglExtensions.contains("WGL_EXT_swap_control_tear");
+                    boolean has_WGL_EXT_swap_control_tear = wglExtensionsList.contains("WGL_EXT_swap_control_tear");
                     if (!has_WGL_EXT_swap_control_tear) {
                         User32.ReleaseDC(windowHandle, hDC);
                         JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -323,7 +319,7 @@ public class Win32ContextFunctions implements ContextFunctions {
 
             if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
                 // Only allowed if WGL_NV_swap_group is available
-                boolean has_WGL_NV_swap_group = wglExtensions.contains("WGL_NV_swap_group");
+                boolean has_WGL_NV_swap_group = wglExtensionsList.contains("WGL_NV_swap_group");
                 if (!has_WGL_NV_swap_group) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -394,8 +390,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             if (attribs.samples > 0) {
                 // Check for ARB or EXT extension (their WGL constants have the same value)
-                boolean has_WGL_ARB_multisample = wglExtensions.contains("WGL_ARB_multisample");
-                boolean has_WGL_EXT_multisample = wglExtensions.contains("WGL_EXT_multisample");
+                boolean has_WGL_ARB_multisample = wglExtensionsList.contains("WGL_ARB_multisample");
+                boolean has_WGL_EXT_multisample = wglExtensionsList.contains("WGL_EXT_multisample");
                 if (!has_WGL_ARB_multisample && !has_WGL_EXT_multisample) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -403,7 +399,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                     throw new OpenGLContextException("Multisampling requested but WGL_ARB_multisample is unavailable");
                 }
                 if (attribs.colorSamplesNV > 0) {
-                    boolean has_WGL_NV_multisample_coverage = wglExtensions.contains("WGL_NV_multisample_coverage");
+                    boolean has_WGL_NV_multisample_coverage = wglExtensionsList.contains("WGL_NV_multisample_coverage");
                     if (!has_WGL_NV_multisample_coverage) {
                         User32.ReleaseDC(windowHandle, hDC);
                         JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -414,7 +410,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             if (attribs.sRGB) {
                 // Check for WGL_EXT_framebuffer_sRGB
-                boolean has_WGL_EXT_framebuffer_sRGB = wglExtensions.contains("WGL_EXT_framebuffer_sRGB");
+                boolean has_WGL_EXT_framebuffer_sRGB = wglExtensionsList.contains("WGL_EXT_framebuffer_sRGB");
                 if (!has_WGL_EXT_framebuffer_sRGB) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -424,7 +420,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             if (attribs.floatPixelFormat) {
                 // Check for WGL_ARB_pixel_format_float
-                boolean has_WGL_ARB_pixel_format_float = wglExtensions.contains("WGL_ARB_pixel_format_float");
+                boolean has_WGL_ARB_pixel_format_float = wglExtensionsList.contains("WGL_ARB_pixel_format_float");
                 if (!has_WGL_ARB_pixel_format_float) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -466,7 +462,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
         }
         if (profile > 0) {
-            boolean has_WGL_ARB_create_context_profile = wglExtensions.contains("WGL_ARB_create_context_profile");
+            boolean has_WGL_ARB_create_context_profile = wglExtensionsList.contains("WGL_ARB_create_context_profile");
             if (!has_WGL_ARB_create_context_profile) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -485,7 +481,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (contextFlags > 0)
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB).put(contextFlags);
         if (attribs.contextReleaseBehavior > 0) {
-            boolean has_WGL_ARB_context_flush_control = wglExtensions.contains("WGL_ARB_context_flush_control");
+            boolean has_WGL_ARB_context_flush_control = wglExtensionsList.contains("WGL_ARB_context_flush_control");
             if (!has_WGL_ARB_context_flush_control) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -516,7 +512,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
         if (attribs.swapInterval != null) {
-            boolean has_WGL_EXT_swap_control = wglExtensions.contains("WGL_EXT_swap_control");
+            boolean has_WGL_EXT_swap_control = wglExtensionsList.contains("WGL_EXT_swap_control");
             if (!has_WGL_EXT_swap_control) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -524,7 +520,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             if (attribs.swapInterval < 0) {
                 // Only allowed if WGL_EXT_swap_control_tear is available
-                boolean has_WGL_EXT_swap_control_tear = wglExtensions.contains("WGL_EXT_swap_control_tear");
+                boolean has_WGL_EXT_swap_control_tear = wglExtensionsList.contains("WGL_EXT_swap_control_tear");
                 if (!has_WGL_EXT_swap_control_tear) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -542,7 +538,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
             // Only allowed if WGL_NV_swap_group is available
-            boolean has_WGL_NV_swap_group = wglExtensions.contains("WGL_NV_swap_group");
+            boolean has_WGL_NV_swap_group = wglExtensionsList.contains("WGL_NV_swap_group");
             if (!has_WGL_NV_swap_group) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
