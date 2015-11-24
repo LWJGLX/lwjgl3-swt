@@ -148,7 +148,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             ib.put(WGLARBMultisample.WGL_SAMPLE_BUFFERS_ARB).put(1);
             ib.put(WGLARBMultisample.WGL_SAMPLES_ARB).put(attribs.samples);
             if (attribs.colorSamplesNV > 0) {
-                ib.put(WGLNVMultisampleCoverage.WGL_COLOR_SAMPLES_NV, attribs.colorSamplesNV);
+                ib.put(WGLNVMultisampleCoverage.WGL_COLOR_SAMPLES_NV).put(attribs.colorSamplesNV);
             }
         }
         ib.put(0);
