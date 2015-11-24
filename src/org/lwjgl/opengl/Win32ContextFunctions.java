@@ -1,8 +1,8 @@
 package org.lwjgl.opengl;
 
 import java.nio.IntBuffer;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.system.APIBuffer;
@@ -265,7 +265,11 @@ public class Win32ContextFunctions implements ContextFunctions {
                 wglExtensions = "";
             }
         }
-        List<String> wglExtensionsList = Arrays.asList(wglExtensions.split("\\s+"));
+        String[] splitted = wglExtensions.split(" ");
+        Set<String> wglExtensionsList = new HashSet<String>(splitted.length);
+        for (String str : splitted) {
+            wglExtensionsList.add(str);
+        }
         success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
         if (success == 0) {
             JNI.callPI(wgl.DeleteContext, dummyContext);
@@ -357,6 +361,13 @@ public class Win32ContextFunctions implements ContextFunctions {
             return context;
         }
 
+        // Check for WGL_ARB_create_context support
+        if (!wglExtensionsList.contains("WGL_ARB_create_context")) {
+            JNI.callPI(wgl.DeleteContext, dummyContext);
+            JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+            throw new OpenGLContextException("Extended context attributes requested but WGL_ARB_create_context is unavailable");
+        }
+
         // Obtain wglCreateContextAttribsARB function pointer
         procEncoded = buffer.stringParamASCII("wglCreateContextAttribsARB", true);
         adr = buffer.address(procEncoded);
@@ -364,7 +375,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (wglCreateContextAttribsARBAddr == 0L) {
             JNI.callPI(wgl.DeleteContext, dummyContext);
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-            throw new OpenGLContextException("No support for wglCreateContextAttribsARB. Cannot create OpenGL context.");
+            throw new OpenGLContextException("WGL_ARB_create_context available but wglCreateContextAttribsARB is NULL");
         }
 
         IntBuffer attribList = BufferUtils.createIntBuffer(64);
@@ -574,10 +585,12 @@ public class Win32ContextFunctions implements ContextFunctions {
         adr = buffer.address(procEncoded);
         long wglQueryMaxSwapGroupsNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
         success = JNI.callPPPI(wglQueryMaxSwapGroupsNVAddr, hDC, bufferAddr, bufferAddr + 4);
-        if (buffer.buffer().getInt(0) > attribs.swapGroupNV) {
+        int maxGroups = buffer.buffer().getInt(0);
+        if (maxGroups < attribs.swapGroupNV) {
             throw new OpenGLContextException("Swap group exceeds maximum group index");
         }
-        if (buffer.buffer().getInt(4) > attribs.swapBarrierNV) {
+        int maxBarriers = buffer.buffer().getInt(4);
+        if (maxBarriers < attribs.swapBarrierNV) {
             throw new OpenGLContextException("Swap barrier exceeds maximum group index");
         }
         success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
