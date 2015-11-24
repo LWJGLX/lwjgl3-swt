@@ -72,7 +72,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
-        if (attribs.profile < GLContextAttributes.OPENGL_CORE_PROFILE || attribs.profile > GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE) {
+        if (attribs.profile != 0 && (attribs.profile < GLContextAttributes.OPENGL_CORE_PROFILE || attribs.profile > GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE)) {
             throw new IllegalArgumentException("Invalid profile.");
         }
         if (attribs.samples < 0) {
@@ -84,8 +84,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (!validVersion(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Invalid OpenGL version");
         }
-        if (attribs.contextReleaseBehavior < GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE
-                || attribs.contextReleaseBehavior > GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH) {
+        if (attribs.contextReleaseBehavior != 0 && 
+                (attribs.contextReleaseBehavior < GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE ||
+                 attribs.contextReleaseBehavior > GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH)) {
             throw new IllegalArgumentException("Invalid context release behavior");
         }
     }
