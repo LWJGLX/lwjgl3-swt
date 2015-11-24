@@ -82,11 +82,11 @@ public class GLContextAttributes {
      */
     public int accumAlphaSize;
     /**
-     * This is ignored. It will implicitly be 1 if {@link #samples} is set to a value greater than 1.
+     * This is ignored. It will implicitly be 1 if {@link #samples} is set to a value greater than or equal to 1.
      */
     public int sampleBuffers;
     /**
-     * The number of samples for multisampling. Multisampling will only be requested for a value greater than 1.
+     * The number of samples for multisampling. Multisampling will only be requested for a value greater than or equal to 1.
      */
     public int samples;
     /**
@@ -132,5 +132,9 @@ public class GLContextAttributes {
      * Specify the behavior on context switch.
      */
     public int contextReleaseBehavior;
+    /**
+     * The number of color samples per pixel.
+     */
+    public int colorSamplesNV;
 
 }

@@ -98,6 +98,12 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (!attribs.doubleBuffer && attribs.swapInterval != null) {
             throw new IllegalArgumentException("Swap interval set but not using double buffering");
         }
+        if (attribs.colorSamplesNV < 0) {
+            throw new IllegalArgumentException("Invalid color samples count");
+        }
+        if (attribs.colorSamplesNV > 0 && attribs.samples == 0) {
+            throw new IllegalArgumentException("Color samples greater than 0 but number of (coverage) samples is 0");
+        }
     }
 
     /**
@@ -138,9 +144,12 @@ public class Win32ContextFunctions implements ContextFunctions {
             ib.put(WGLARBPixelFormat.WGL_ACCUM_BITS_ARB).put(attribs.accumRedSize + attribs.accumGreenSize + attribs.accumBlueSize + attribs.accumAlphaSize);
         if (attribs.sRGB)
             ib.put(WGLEXTFramebufferSRGB.WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT).put(1);
-        if (attribs.samples > 1) {
+        if (attribs.samples > 0) {
             ib.put(WGLARBMultisample.WGL_SAMPLE_BUFFERS_ARB).put(1);
             ib.put(WGLARBMultisample.WGL_SAMPLES_ARB).put(attribs.samples);
+            if (attribs.colorSamplesNV > 0) {
+                ib.put(WGLNVMultisampleCoverage.WGL_COLOR_SAMPLES_NV, attribs.colorSamplesNV);
+            }
         }
         ib.put(0);
     }
@@ -247,7 +256,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
 
         // For some constellations of context attributes, we can stop right here.
-        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples <= 1 && !attribs.sRGB && !attribs.floatPixelFormat
+        if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples == 0 && !attribs.sRGB && !attribs.floatPixelFormat
                 && attribs.contextReleaseBehavior == 0) {
             /* Finally, create the real context on the real window */
             long hDC = User32.GetDC(windowHandle);
@@ -317,7 +326,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         long hDC = User32.GetDC(windowHandle);
 
         // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
-        if (attribs.samples > 1 || attribs.sRGB || attribs.floatPixelFormat) {
+        if (attribs.samples >= 1 || attribs.sRGB || attribs.floatPixelFormat) {
             procEncoded = buffer.stringParamASCII("wglChoosePixelFormatARB", true);
             adr = buffer.address(procEncoded);
             long wglChoosePixelFormatARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
@@ -327,13 +336,22 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("No support for wglChoosePixelFormatARB. Cannot query supported pixel formats.");
             }
-            if (attribs.samples > 1) {
+            if (attribs.samples > 0) {
                 boolean has_WGL_ARB_multisample = wglExtensions.contains("WGL_ARB_multisample");
                 if (!has_WGL_ARB_multisample) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     throw new OpenGLContextException("Multisampling requested but WGL_ARB_multisample is unavailable");
+                }
+                if (attribs.colorSamplesNV > 0) {
+                    boolean has_WGL_NV_multisample_coverage = wglExtensions.contains("WGL_NV_multisample_coverage");
+                    if (!has_WGL_NV_multisample_coverage) {
+                        User32.ReleaseDC(windowHandle, hDC);
+                        JNI.callPI(wgl.DeleteContext, dummyContext);
+                        JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                        throw new OpenGLContextException("Color samples requested but WGL_NV_multisample_coverage is unavailable");
+                    }
                 }
             }
             // Query matching pixel formats

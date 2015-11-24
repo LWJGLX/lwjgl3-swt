@@ -63,11 +63,11 @@ public class GLData {
      */
     public int accumAlphaSize;
     /**
-     * This is ignored. It will implicitly be 1 if {@link #samples} is set to a value greater than 1.
+     * This is ignored. It will implicitly be 1 if {@link #samples} is set to a value greater than or equal to 1.
      */
     public int sampleBuffers;
     /**
-     * The number of samples for multisampling. Multisampling will only be requested for a value greater than 1.
+     * The number of samples for multisampling. Multisampling will only be requested for a value greater than or equal to 1.
      */
     public int samples;
     /**
@@ -145,6 +145,10 @@ public class GLData {
      * Specify the behavior on context switch.
      */
     public int contextReleaseBehavior;
+    /**
+     * The number of color samples per pixel.
+     */
+    public int colorSamplesNV;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -176,6 +180,7 @@ public class GLData {
         attribs.sRGB = sRGB;
         attribs.floatPixelFormat = pixelFormatFloat;
         attribs.contextReleaseBehavior = contextReleaseBehavior;
+        attribs.colorSamplesNV = colorSamplesNV;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }
