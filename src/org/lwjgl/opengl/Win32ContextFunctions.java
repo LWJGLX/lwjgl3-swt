@@ -39,6 +39,11 @@ public class Win32ContextFunctions implements ContextFunctions {
         return major == 3 && minor >= 0 || major > 3;
     }
 
+    private static boolean validVersion(int major, int minor) {
+        return (major >= 1 && minor >= 0) && (major != 1 || minor <= 5) && (major != 2 || minor <= 1) && (major != 3 || minor <= 3)
+                && (major != 4 || minor <= 5);
+    }
+
     /**
      * Validate the given {@link GLContextAttributes} and throw an exception on validation error.
      * 
@@ -67,7 +72,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
-        if (attribs.profile < 0 || attribs.profile > 2) {
+        if (attribs.profile < GLContextAttributes.OPENGL_CORE_PROFILE || attribs.profile > GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE) {
             throw new IllegalArgumentException("Invalid profile.");
         }
         if (attribs.samples < 0) {
@@ -75,6 +80,13 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         if (attribs.profile > 0 && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Context profiles are only defined for OpenGL version 3.2 and above");
+        }
+        if (!validVersion(attribs.majorVersion, attribs.minorVersion)) {
+            throw new IllegalArgumentException("Invalid OpenGL version");
+        }
+        if (attribs.contextReleaseBehavior < GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE
+                || attribs.contextReleaseBehavior > GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_FLUSH) {
+            throw new IllegalArgumentException("Invalid context release behavior");
         }
     }
 
@@ -357,7 +369,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                throw new OpenGLContextException("Context release behaviour requested but WGL_ARB_context_flush_control is unavailable");
+                throw new OpenGLContextException("Context release behavior requested but WGL_ARB_context_flush_control is unavailable");
             }
             if (attribs.contextReleaseBehavior == GLContextAttributes.CONTEXT_RELEASE_BEHAVIOR_NONE)
                 attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB);
