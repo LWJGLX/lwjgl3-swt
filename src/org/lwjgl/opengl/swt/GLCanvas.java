@@ -1,6 +1,7 @@
 package org.lwjgl.opengl.swt;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
@@ -22,16 +23,29 @@ public class GLCanvas extends Canvas {
     int pixelFormat;
     static final String USE_OWNDC_KEY = "org.eclipse.swt.internal.win32.useOwnDC";
 
+    /**
+     * Create a GLCanvas widget using the attributes described in the GLData
+     * object provided.
+     *
+     * @param parent a composite widget
+     * @param style the bitwise OR'ing of widget styles
+     * @param data the requested attributes of the GLCanvas
+     *
+     * @exception IllegalArgumentException
+     * <ul><li>ERROR_NULL_ARGUMENT when the data is null
+     *     <li>ERROR_UNSUPPORTED_DEPTH when the requested attributes cannot be provided</ul> 
+     * </ul>
+     */
     public GLCanvas(Composite parent, int style, GLData data) {
         super(parent, checkStyle(parent, style));
-        Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
         parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.FALSE);
+        if (data == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+        Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
         GLContextAttributes contextAttribs = data.toContextAttributes();
         try {
             context = GLContext.create(handle, dummycanvas.handle, contextAttribs);
         } catch (OpenGLContextException e) {
-            /* There are no SWT errors which can handle all error cases, so just issue ERROR_IO. */
-            SWT.error(SWT.ERROR_IO, e);
+            SWT.error(SWT.ERROR_UNSUPPORTED_DEPTH, e);
         }
         dummycanvas.dispose();
         Listener listener = new Listener() {
@@ -65,11 +79,44 @@ public class GLCanvas extends Canvas {
         return style;
     }
 
+    /**
+     * Returns a GLData object describing the created context.
+     *  
+     * @return GLData description of the OpenGL context attributes
+     * @exception SWTException <ul>
+     *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+     *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+     * </ul>
+     */
+    public GLData getGLData () {
+        throw new UnsupportedOperationException("NYI");
+    }
+
+    /**
+     * Returns a boolean indicating whether the receiver's OpenGL context
+     * is the current context.
+     *  
+     * @return true if the receiver holds the current OpenGL context,
+     * false otherwise
+     * @exception SWTException <ul>
+     *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+     *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+     * </ul>
+     */
     public boolean isCurrent() {
         checkWidget();
         return GLContext.isCurrent(context);
     }
 
+    /**
+     * Sets the OpenGL context associated with this GLCanvas to be the
+     * current GL context.
+     * 
+     * @exception SWTException <ul>
+     *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+     *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+     * </ul>
+     */
     public void setCurrent() {
         checkWidget();
         if (GLContext.isCurrent(context))
@@ -77,6 +124,14 @@ public class GLCanvas extends Canvas {
         GLContext.makeCurrent(handle, context);
     }
 
+    /**
+     * Swaps the front and back color buffers.
+     * 
+     * @exception SWTException <ul>
+     *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+     *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+     * </ul>
+     */
     public void swapBuffers() {
         checkWidget();
         GLContext.swapBuffers(handle);
