@@ -245,7 +245,20 @@ public class Win32ContextFunctions implements ContextFunctions {
                 wglExtensions = "";
             }
         } else {
-            wglExtensions = "";
+            // Try the EXT extension
+            procEncoded = buffer.stringParamASCII("wglGetExtensionsStringEXT", true);
+            adr = buffer.address(procEncoded);
+            long wglGetExtensionsStringEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglGetExtensionsStringEXTAddr != 0L) {
+                long str = JNI.callP(wglGetExtensionsStringEXTAddr);
+                if (str != 0L) {
+                    wglExtensions = MemoryUtil.memDecodeASCII(str);
+                } else {
+                    wglExtensions = "";
+                }
+            } else {
+                wglExtensions = "";
+            }
         }
 
         success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
@@ -335,19 +348,27 @@ public class Win32ContextFunctions implements ContextFunctions {
         long hDC = User32.GetDC(windowHandle);
 
         // Obtain wglChoosePixelFormatARB if multisampling or sRGB or floating point pixel format is requested
-        if (attribs.samples >= 1 || attribs.sRGB || attribs.floatPixelFormat) {
+        if (attribs.samples > 0 || attribs.sRGB || attribs.floatPixelFormat) {
             procEncoded = buffer.stringParamASCII("wglChoosePixelFormatARB", true);
             adr = buffer.address(procEncoded);
-            long wglChoosePixelFormatARBAddr = JNI.callPP(wgl.GetProcAddress, adr);
-            if (wglChoosePixelFormatARBAddr == 0L) {
-                User32.ReleaseDC(windowHandle, hDC);
-                JNI.callPI(wgl.DeleteContext, dummyContext);
-                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                throw new OpenGLContextException("No support for wglChoosePixelFormatARB. Cannot query supported pixel formats.");
+            long wglChoosePixelFormatAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglChoosePixelFormatAddr == 0L) {
+                // Try EXT function (the WGL constants are the same in both extensions)
+                procEncoded = buffer.stringParamASCII("wglChoosePixelFormatEXT", true);
+                adr = buffer.address(procEncoded);
+                wglChoosePixelFormatAddr = JNI.callPP(wgl.GetProcAddress, adr);
+                if (wglChoosePixelFormatAddr == 0L) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("No support for wglChoosePixelFormatARB/EXT. Cannot query supported pixel formats.");
+                }
             }
             if (attribs.samples > 0) {
+                // Check for ARB or EXT extension (their WGL constants have the same value)
                 boolean has_WGL_ARB_multisample = wglExtensions.contains("WGL_ARB_multisample");
-                if (!has_WGL_ARB_multisample) {
+                boolean has_WGL_EXT_multisample = wglExtensions.contains("WGL_EXT_multisample");
+                if (!has_WGL_ARB_multisample && !has_WGL_EXT_multisample) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -365,7 +386,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
-            int succ = JNI.callPPPIPPI(wglChoosePixelFormatARBAddr, hDC, attribListAddr, 0L, 1, bufferAddr + 4, bufferAddr);
+            int succ = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, bufferAddr + 4, bufferAddr);
             int numFormats = buffer.buffer().getInt(0);
             if (succ == 0 || numFormats == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
