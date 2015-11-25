@@ -3,7 +3,6 @@ package org.lwjgl.opengl.swt;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -114,12 +113,10 @@ public class SharedContextsDemo {
         for (GLCanvas canvas : canvases) {
             canvas.setCurrent();
             glClearColor(0.4f, 0.6f, 0.9f, 1.0f);
-            final int vao = glGenVertexArrays();
-            glBindVertexArray(vao);
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
+            glVertexPointer(3, GL_FLOAT, 0, 0L);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-            glEnableVertexAttribArray(0);
+            glEnableClientState(GL_VERTEX_ARRAY);
             glUseProgram(program);
         }
 

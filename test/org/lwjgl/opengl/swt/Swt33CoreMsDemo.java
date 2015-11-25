@@ -73,25 +73,31 @@ public class Swt33CoreMsDemo {
 		int program = glCreateProgram();
 		int vs = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vs,
+				"#version 130\n" +
+				"in vec3 vertex;" +
 				"uniform float rot;" +
 				"uniform float aspect;" +
 				"void main(void) {" + 
-				"  vec4 v = gl_Vertex * 0.5;" +
-				"  vec4 v_ = vec4(0.0, 0.0, 0.0, 1.0);" +
+				"  vec3 v = vertex * 0.5;" +
+				"  vec3 v_ = vec3(0.0, 0.0, 0.0);" +
 				"  v_.x = v.x * cos(rot) - v.y * sin(rot);" +
 				"  v_.y = v.y * cos(rot) + v.x * sin(rot);" +
 				"  v_.x /= aspect;" +
-				"  gl_Position = v_;" +
+				"  gl_Position = vec4(v_, 1.0);" +
 				"}");
 		glCompileShader(vs);
 		glAttachShader(program, vs);
 		int fs = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fs,
+				"#version 130\n" +
+				"out vec4 color;" +
 				"void main(void) {" +
-				"  gl_FragColor = vec4(0.1, 0.3, 0.5, 1.0);" + 
+				"  color = vec4(0.1, 0.3, 0.5, 1.0);" + 
 				"}");
 		glCompileShader(fs);
 		glAttachShader(program, fs);
+		glBindAttribLocation(program, 0, "vertex");
+		glBindFragDataLocation(program, 0, "color");
 		glLinkProgram(program);
 		glUseProgram(program);
 		final int rotLocation = glGetUniformLocation(program, "rot");
@@ -113,15 +119,11 @@ public class Swt33CoreMsDemo {
 		};
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils
-				.createFloatBuffer(vertices.length).put(vertices).flip(),
-				GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils.createFloatBuffer(vertices.length).put(vertices).flip(), GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, (IntBuffer) BufferUtils
-				.createIntBuffer(indices.length).put(indices).flip(),
-				GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, (IntBuffer) BufferUtils.createIntBuffer(indices.length).put(indices).flip(), GL_STATIC_DRAW);
 
 		shell.setSize(800, 600);
 		shell.open();
