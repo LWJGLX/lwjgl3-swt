@@ -146,11 +146,11 @@ public class GLData {
      */
     public int colorSamplesNV;
     /**
-     * The swap group index;
+     * The swap group index. Use this to synchronize buffer swaps across multiple windows on the same system.
      */
     public int swapGroupNV;
     /**
-     * The swap barrier index;
+     * The swap barrier index. Use this to synchronize buffer swaps across multiple systems. This requires a Nvidia G-Sync card.
      */
     public int swapBarrierNV;
     /**

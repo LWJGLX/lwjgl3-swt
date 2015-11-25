@@ -109,11 +109,8 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.swapBarrierNV < 0) {
             throw new IllegalArgumentException("Invalid swap barrier");
         }
-        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV == 0) {
-            throw new IllegalArgumentException("Swap group requested but no valid swap barrier set");
-        }
-        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0 && !attribs.doubleBuffer) {
-            throw new IllegalArgumentException("Swap group requested but not using double buffering");
+        if ((attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) && !attribs.doubleBuffer) {
+            throw new IllegalArgumentException("Swap group or barrier requested but not using double buffering");
         }
         if (attribs.loseContextOnReset && !attribs.robustness) {
             throw new IllegalArgumentException("Lose context notification requested but not using robustness");
@@ -333,17 +330,18 @@ public class Win32ContextFunctions implements ContextFunctions {
                 }
             }
 
-            if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
+            if (attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) {
                 // Only allowed if WGL_NV_swap_group is available
                 boolean has_WGL_NV_swap_group = wglExtensionsList.contains("WGL_NV_swap_group");
                 if (!has_WGL_NV_swap_group) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                    throw new OpenGLContextException("Swap group requested but WGL_NV_swap_group is unavailable");
+                    throw new OpenGLContextException("Swap group or barrier requested but WGL_NV_swap_group is unavailable");
                 }
+                // Make context current to join swap group and/or barrier
                 success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
                 try {
-                    wglNvSwapGroup(windowHandle, attribs, buffer, bufferAddr, hDC);
+                    wglNvSwapGroupAndBarrier(windowHandle, attribs, buffer, bufferAddr, hDC);
                 } catch (OpenGLContextException e) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -586,18 +584,18 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
             }
         }
-        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0) {
+        if (attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) {
             // Only allowed if WGL_NV_swap_group is available
             boolean has_WGL_NV_swap_group = wglExtensionsList.contains("WGL_NV_swap_group");
             if (!has_WGL_NV_swap_group) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                throw new OpenGLContextException("Swap group requested but WGL_NV_swap_group is unavailable");
+                throw new OpenGLContextException("Swap group or barrier requested but WGL_NV_swap_group is unavailable");
             }
-            // Make context current to join swap group
+            // Make context current to join swap group and/or barrier
             success = JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             try {
-                wglNvSwapGroup(windowHandle, attribs, buffer, bufferAddr, hDC);
+                wglNvSwapGroupAndBarrier(windowHandle, attribs, buffer, bufferAddr, hDC);
             } catch (OpenGLContextException e) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -610,16 +608,11 @@ public class Win32ContextFunctions implements ContextFunctions {
         return newCtx;
     }
 
-    private void wglNvSwapGroup(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long bufferAddr, long hDC) throws OpenGLContextException {
+    private void wglNvSwapGroupAndBarrier(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long bufferAddr, long hDC)
+            throws OpenGLContextException {
         int success;
         int procEncoded;
         long adr;
-        procEncoded = buffer.stringParamASCII("wglJoinSwapGroupNV", true);
-        adr = buffer.address(procEncoded);
-        long wglJoinSwapGroupNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
-        procEncoded = buffer.stringParamASCII("wglBindSwapBarrierNV", true);
-        adr = buffer.address(procEncoded);
-        long wglBindSwapBarrierNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
         procEncoded = buffer.stringParamASCII("wglQueryMaxSwapGroupsNV", true);
         adr = buffer.address(procEncoded);
         long wglQueryMaxSwapGroupsNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
@@ -632,14 +625,29 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (maxBarriers < attribs.swapBarrierNV) {
             throw new OpenGLContextException("Swap barrier exceeds maximum group index");
         }
-        success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
-        if (success == 0) {
-            throw new OpenGLContextException("Failed to join swap group");
+        if (attribs.swapGroupNV > 0) {
+            procEncoded = buffer.stringParamASCII("wglJoinSwapGroupNV", true);
+            adr = buffer.address(procEncoded);
+            long wglJoinSwapGroupNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglJoinSwapGroupNVAddr == 0L) {
+                throw new OpenGLContextException("WGL_NV_swap_group available but wglJoinSwapGroupNV is NULL");
+            }
+            success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
+            if (success == 0) {
+                throw new OpenGLContextException("Failed to join swap group");
+            }
         }
-        success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
-        if (success == 0) {
-            JNI.callPII(wglJoinSwapGroupNVAddr, hDC, 0);
-            throw new OpenGLContextException("Failed to bind swap barrier. Probably no G-Sync card installed.");
+        if (attribs.swapBarrierNV > 0) {
+            procEncoded = buffer.stringParamASCII("wglBindSwapBarrierNV", true);
+            adr = buffer.address(procEncoded);
+            long wglBindSwapBarrierNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglBindSwapBarrierNVAddr == 0L) {
+                throw new OpenGLContextException("WGL_NV_swap_group available but wglBindSwapBarrierNV is NULL");
+            }
+            success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
+            if (success == 0) {
+                throw new OpenGLContextException("Failed to bind swap barrier. Probably no G-Sync card installed.");
+            }
         }
     }
 
