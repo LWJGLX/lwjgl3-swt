@@ -112,6 +112,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         if ((attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) && !attribs.doubleBuffer) {
             throw new IllegalArgumentException("Swap group or barrier requested but not using double buffering");
         }
+        if (attribs.swapBarrierNV > 0 && attribs.swapGroupNV == 0) {
+            throw new IllegalArgumentException("Swap barrier requested but no valid swap group set");
+        }
         if (attribs.loseContextOnReset && !attribs.robustness) {
             throw new IllegalArgumentException("Lose context notification requested but not using robustness");
         }
@@ -636,17 +639,17 @@ public class Win32ContextFunctions implements ContextFunctions {
             if (success == 0) {
                 throw new OpenGLContextException("Failed to join swap group");
             }
-        }
-        if (attribs.swapBarrierNV > 0) {
-            procEncoded = buffer.stringParamASCII("wglBindSwapBarrierNV", true);
-            adr = buffer.address(procEncoded);
-            long wglBindSwapBarrierNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
-            if (wglBindSwapBarrierNVAddr == 0L) {
-                throw new OpenGLContextException("WGL_NV_swap_group available but wglBindSwapBarrierNV is NULL");
-            }
-            success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
-            if (success == 0) {
-                throw new OpenGLContextException("Failed to bind swap barrier. Probably no G-Sync card installed.");
+            if (attribs.swapBarrierNV > 0) {
+                procEncoded = buffer.stringParamASCII("wglBindSwapBarrierNV", true);
+                adr = buffer.address(procEncoded);
+                long wglBindSwapBarrierNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+                if (wglBindSwapBarrierNVAddr == 0L) {
+                    throw new OpenGLContextException("WGL_NV_swap_group available but wglBindSwapBarrierNV is NULL");
+                }
+                success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
+                if (success == 0) {
+                    throw new OpenGLContextException("Failed to bind swap barrier. Probably no G-Sync card installed.");
+                }
             }
         }
     }
