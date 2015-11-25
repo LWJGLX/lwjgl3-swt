@@ -10,7 +10,7 @@ Support for:
 - multisampled framebuffers (also with different number of color samples - Nvidia only)
 - v-sync/swap control
 - context flush control
-- robust buffer access
+- robust buffer access (with application/share-group isolation)
 - sync'ing buffer swaps over multiple windows and cards - Nvidia only
 
 ## Why does it exist?
