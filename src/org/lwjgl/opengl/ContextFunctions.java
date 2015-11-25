@@ -17,4 +17,6 @@ public interface ContextFunctions {
 
     boolean swapBuffers(long windowHandle);
 
+    boolean delayBeforeSwapNV(long windowHandle, float seconds);
+
 }

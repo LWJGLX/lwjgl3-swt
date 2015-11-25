@@ -27,6 +27,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         wgl = new WGL(GL.getFunctionProvider());
     }
 
+    private long wglDelayBeforeSwapNVAddr = 0L;
+    private boolean wglDelayBeforeSwapNVAddr_set = false;
+
     private static boolean atLeast32(int major, int minor) {
         return major == 3 && minor >= 2 || major > 3;
     }
@@ -660,6 +663,23 @@ public class Win32ContextFunctions implements ContextFunctions {
     public boolean swapBuffers(long windowHandle) {
         long hDC = User32.GetDC(windowHandle);
         int ret = GDI32.SwapBuffers(hDC);
+        User32.ReleaseDC(windowHandle, hDC);
+        return ret == 1;
+    }
+
+    public boolean delayBeforeSwapNV(long windowHandle, float seconds) {
+        if (!wglDelayBeforeSwapNVAddr_set) {
+            APIBuffer buffer = APIUtil.apiBuffer();
+            int procEncoded = buffer.stringParamASCII("wglDelayBeforeSwapNV", true);
+            long adr = buffer.address(procEncoded);
+            wglDelayBeforeSwapNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            wglDelayBeforeSwapNVAddr_set = true;
+        }
+        if (wglDelayBeforeSwapNVAddr == 0L) {
+            throw new UnsupportedOperationException("wglDelayBeforeSwapNV is unavailable");
+        }
+        long hDC = User32.GetDC(windowHandle);
+        int ret = JNI.callPFI(wglDelayBeforeSwapNVAddr, hDC, seconds);
         User32.ReleaseDC(windowHandle, hDC);
         return ret == 1;
     }

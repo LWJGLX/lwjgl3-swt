@@ -70,4 +70,8 @@ public class GLContext {
         return funcs.swapBuffers(windowHandle);
     }
 
+    public static boolean delayBeforeSwapNV(long windowHandle, float seconds) {
+        return funcs.delayBeforeSwapNV(windowHandle, seconds);
+    }
+
 }
