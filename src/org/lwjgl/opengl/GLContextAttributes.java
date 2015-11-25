@@ -152,5 +152,10 @@ public class GLContextAttributes {
      * When {@link #robustness} is <code>true</code> then this specifies whether a GL_LOSE_CONTEXT_ON_RESET_ARB reset notification is sent, as described by GL_ARB_robustness.
      */
     public boolean loseContextOnReset;
+    /**
+     * When {@link #robustness} is <code>true</code> and {@link #loseContextOnReset} is <code>true</code> then this specifies whether a graphics reset only affects
+     * the current application and no other application in the system.
+     */
+    public boolean contextResetIsolation;
 
 }

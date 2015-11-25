@@ -112,6 +112,12 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0 && !attribs.doubleBuffer) {
             throw new IllegalArgumentException("Swap group requested but not using double buffering");
         }
+        if (attribs.loseContextOnReset && !attribs.robustness) {
+            throw new IllegalArgumentException("Lose context notification requested but not using robustness");
+        }
+        if (attribs.contextResetIsolation && !attribs.robustness) {
+            throw new IllegalArgumentException("Context reset isolation requested but not using robustness");
+        }
     }
 
     /**
@@ -505,6 +511,18 @@ public class Win32ContextFunctions implements ContextFunctions {
             if (attribs.loseContextOnReset) {
                 attribList.put(WGLARBCreateContextRobustness.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB).put(WGLARBCreateContextRobustness.WGL_LOSE_CONTEXT_ON_RESET_ARB);
                 // Note: WGL_NO_RESET_NOTIFICATION_ARB is default behaviour and need not be specified.
+            }
+            if (attribs.contextResetIsolation) {
+                // Check for WGL_ARB_robustness_application_isolation or WGL_ARB_robustness_share_group_isolation
+                boolean has_WGL_ARB_robustness_application_isolation = wglExtensions.contains("WGL_ARB_robustness_application_isolation");
+                boolean has_WGL_ARB_robustness_share_group_isolation = wglExtensions.contains("WGL_ARB_robustness_share_group_isolation");
+                if (!has_WGL_ARB_robustness_application_isolation && !has_WGL_ARB_robustness_share_group_isolation) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("Robustness isolation requested but neither WGL_ARB_robustness_application_isolation nor WGL_ARB_robustness_share_group_isolation is unavailable");
+                }
+                contextFlags |= WGLARBRobustnessApplicationIsolation.WGL_CONTEXT_RESET_ISOLATION_BIT_ARB;
             }
         }
         if (contextFlags > 0)

@@ -161,6 +161,11 @@ public class GLData {
      * When {@link #robustness} is <code>true</code> then this specifies whether a GL_LOSE_CONTEXT_ON_RESET_ARB reset notification is sent, as described by GL_ARB_robustness.
      */
     public boolean loseContextOnReset;
+    /**
+     * When {@link #robustness} is <code>true</code> and {@link #loseContextOnReset} is <code>true</code> then this specifies whether a graphics reset only affects
+     * the current application and no other application in the system.
+     */
+    public boolean contextResetIsolation;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -197,6 +202,7 @@ public class GLData {
         attribs.swapBarrierNV = swapBarrierNV;
         attribs.robustness = robustness;
         attribs.loseContextOnReset = loseContextOnReset;
+        attribs.contextResetIsolation = contextResetIsolation;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }
