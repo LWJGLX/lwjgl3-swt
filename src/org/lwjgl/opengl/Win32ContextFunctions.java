@@ -109,6 +109,9 @@ public class Win32ContextFunctions implements ContextFunctions {
         if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV == 0) {
             throw new IllegalArgumentException("Swap group requested but no valid swap barrier set");
         }
+        if (attribs.swapGroupNV > 0 && attribs.swapBarrierNV > 0 && !attribs.doubleBuffer) {
+            throw new IllegalArgumentException("Swap group requested but not using double buffering");
+        }
     }
 
     /**
@@ -279,7 +282,7 @@ public class Win32ContextFunctions implements ContextFunctions {
 
         // For some constellations of context attributes, we can stop right here.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples == 0 && !attribs.sRGB && !attribs.floatPixelFormat
-                && attribs.contextReleaseBehavior == 0) {
+                && attribs.contextReleaseBehavior == 0 && !attribs.robustness) {
             /* Finally, create the real context on the real window */
             long hDC = User32.GetDC(windowHandle);
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
@@ -488,6 +491,21 @@ public class Win32ContextFunctions implements ContextFunctions {
         }
         if (attribs.forwardCompatible) {
             contextFlags |= WGLARBCreateContext.WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+        }
+        if (attribs.robustness) {
+            // Check for WGL_ARB_create_context_robustness
+            boolean has_WGL_ARB_create_context_robustness = wglExtensions.contains("WGL_ARB_create_context_robustness");
+            if (!has_WGL_ARB_create_context_robustness) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Context with robust buffer access requested but WGL_ARB_create_context_robustness is unavailable");
+            }
+            contextFlags |= WGLARBCreateContextRobustness.WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB;
+            if (attribs.loseContextOnReset) {
+                attribList.put(WGLARBCreateContextRobustness.WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB).put(WGLARBCreateContextRobustness.WGL_LOSE_CONTEXT_ON_RESET_ARB);
+                // Note: WGL_NO_RESET_NOTIFICATION_ARB is default behaviour and need not be specified.
+            }
         }
         if (contextFlags > 0)
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB).put(contextFlags);

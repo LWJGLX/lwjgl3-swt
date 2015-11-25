@@ -153,6 +153,14 @@ public class GLData {
      * The swap barrier index;
      */
     public int swapBarrierNV;
+    /**
+     * Whether robust buffer access should be used.
+     */
+    public boolean robustness;
+    /**
+     * When {@link #robustness} is <code>true</code> then this specifies whether a GL_LOSE_CONTEXT_ON_RESET_ARB reset notification is sent, as described by GL_ARB_robustness.
+     */
+    public boolean loseContextOnReset;
 
     /**
      * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
@@ -187,6 +195,8 @@ public class GLData {
         attribs.colorSamplesNV = colorSamplesNV;
         attribs.swapGroupNV = swapGroupNV;
         attribs.swapBarrierNV = swapBarrierNV;
+        attribs.robustness = robustness;
+        attribs.loseContextOnReset = loseContextOnReset;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
     }

@@ -144,5 +144,13 @@ public class GLContextAttributes {
      * The swap barrier index.
      */
     public int swapBarrierNV;
+    /**
+     * Whether robust buffer access should be used.
+     */
+    public boolean robustness;
+    /**
+     * When {@link #robustness} is <code>true</code> then this specifies whether a GL_LOSE_CONTEXT_ON_RESET_ARB reset notification is sent, as described by GL_ARB_robustness.
+     */
+    public boolean loseContextOnReset;
 
 }
