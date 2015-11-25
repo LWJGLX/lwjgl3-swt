@@ -5,9 +5,13 @@ Revised drop-in implementation of SWT's GLCanvas.
 ## What does it get me?
 
 Support for:
-- creating OpenGL 3.0 and 3.2 core/compatibility contexts
-- Multisampled framebuffers
+- creating OpenGL 3.0 and 3.2 core/compatibility contexts (including debug context)
+- floating-point and sRGB pixel formats
+- multisampled framebuffers (also with different number of color samples - Nvidia only)
 - v-sync/swap control
+- context flush control
+- robust buffer access
+- sync'ing buffer swaps over multiple windows and cards - Nvidia only
 
 ## Why does it exist?
 
