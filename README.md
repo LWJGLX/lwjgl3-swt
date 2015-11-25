@@ -47,3 +47,8 @@ then adding multisampling and using a OpenGL 3.2 core context is as easy as doin
 		data.swapInterval = 1; // for enabling v-sync (swapbuffers sync'ed to monitor refresh)
 		GLCanvas canvas = new GLCanvas(shell, 0, data);
 ```
+## What is planned for the future?
+
+Support for:
+- associating rendering contexts with specific GPUs on Nvidia and AMD
+- pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)
