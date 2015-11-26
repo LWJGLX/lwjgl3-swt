@@ -344,7 +344,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 // Make context current to join swap group and/or barrier
                 success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
                 try {
-                    wglNvSwapGroupAndBarrier(windowHandle, attribs, buffer, bufferAddr, hDC);
+                    wglNvSwapGroupAndBarrier(attribs, buffer, bufferAddr, hDC);
                 } catch (OpenGLContextException e) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -598,7 +598,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             // Make context current to join swap group and/or barrier
             success = JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             try {
-                wglNvSwapGroupAndBarrier(windowHandle, attribs, buffer, bufferAddr, hDC);
+                wglNvSwapGroupAndBarrier(attribs, buffer, bufferAddr, hDC);
             } catch (OpenGLContextException e) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -611,7 +611,7 @@ public class Win32ContextFunctions implements ContextFunctions {
         return newCtx;
     }
 
-    private void wglNvSwapGroupAndBarrier(long windowHandle, GLContextAttributes attribs, APIBuffer buffer, long bufferAddr, long hDC)
+    private void wglNvSwapGroupAndBarrier(GLContextAttributes attribs, APIBuffer buffer, long bufferAddr, long hDC)
             throws OpenGLContextException {
         int success;
         int procEncoded;
