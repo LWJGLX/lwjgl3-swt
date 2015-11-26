@@ -21,7 +21,29 @@ import org.lwjgl.system.Platform;
 public class GLCanvas extends Canvas {
     long context;
     int pixelFormat;
-    static final String USE_OWNDC_KEY = "org.eclipse.swt.internal.win32.useOwnDC";
+
+    private static PlatformGLCanvas platformCanvas;
+    static {
+        String platformClassName;
+        switch (Platform.get()) {
+        case WINDOWS:
+            platformClassName = "org.lwjgl.opengl.swt.PlatformWin32GLCanvas";
+            break;
+        default:
+            throw new AssertionError("NYI");
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Class<? extends PlatformGLCanvas> clazz = (Class<? extends PlatformGLCanvas>) GLCanvas.class.getClassLoader().loadClass(platformClassName);
+            platformCanvas = clazz.newInstance();
+        } catch (ClassNotFoundException e) {
+            throw new AssertionError("Platform-specific GLCanvas class not found: " + platformClassName);
+        } catch (InstantiationException e) {
+            throw new AssertionError("Could not instantiate Platform-specific GLCanvas class: " + platformClassName);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError("Could not instantiate Platform-specific GLCanvas class: " + platformClassName);
+        }
+    }
 
     /**
      * Create a GLCanvas widget using the attributes described in the GLData
@@ -38,7 +60,9 @@ public class GLCanvas extends Canvas {
      */
     public GLCanvas(Composite parent, int style, GLData data) {
         super(parent, checkStyle(parent, style));
-        parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.FALSE);
+        if (Platform.get() == Platform.WINDOWS) {
+            platformCanvas.resetStyle(parent);
+        }
         if (data == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
         Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
         GLContextAttributes contextAttribs = data.toContextAttributes();
@@ -60,23 +84,8 @@ public class GLCanvas extends Canvas {
         addListener(SWT.Dispose, listener);
     }
 
-    private static int checkStyleWin32(Composite parent, int style) {
-        // Somehow we need to temporarily set 'org.eclipse.swt.internal.win32.useOwnDC'
-        // to true or else context creation on Windows fails...
-        if (parent != null) {
-            if (!org.eclipse.swt.internal.win32.OS.IsWinCE
-                    && org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
-                parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
-            }
-        }
-        return style;
-    }
-
     private static int checkStyle(Composite parent, int style) {
-        if (Platform.get() == Platform.WINDOWS) {
-            return checkStyleWin32(parent, style);
-        }
-        return style;
+        return platformCanvas.checkStyle(parent, style);
     }
 
     /**
