@@ -7,7 +7,7 @@ import org.eclipse.swt.widgets.Composite;
  * 
  * @author Kai Burjack
  */
-public abstract class PlatformGLCanvas {
+abstract class PlatformGLCanvas {
 
     abstract int checkStyle(Composite parent, int style);
 
