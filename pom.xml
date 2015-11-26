@@ -7,6 +7,8 @@
 	<properties>
 		<lwjgl.version>3.0.0b</lwjgl.version>
 		<swt.version>4.5.1</swt.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<profiles>
 		<profile>
