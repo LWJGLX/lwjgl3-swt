@@ -49,7 +49,7 @@ public class Swt33CoreMsDemo {
 
 		final Rectangle rect = new Rectangle(0, 0, 0, 0);
 		canvas.addListener(SWT.Resize, new Listener() {
-			public void handleEvent(Event event) {
+			public void handleEvent(@SuppressWarnings("unused") Event event) {
 				Rectangle bounds = canvas.getBounds();
 				rect.width = bounds.width;
 				rect.height = bounds.height;

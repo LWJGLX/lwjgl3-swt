@@ -107,7 +107,7 @@ public class GLCanvas extends Canvas {
         checkWidget();
         if (platformCanvas.isCurrent(context))
             return;
-        platformCanvas.makeCurrent(handle, context);
+        platformCanvas.makeCurrent(this, context);
     }
 
     /**
@@ -120,7 +120,7 @@ public class GLCanvas extends Canvas {
      */
     public void swapBuffers() {
         checkWidget();
-        platformCanvas.swapBuffers(handle);
+        platformCanvas.swapBuffers(this);
     }
 
     /**
@@ -130,7 +130,7 @@ public class GLCanvas extends Canvas {
      */
     public boolean delayBeforeSwapNV(float seconds) {
         checkWidget();
-        return platformCanvas.delayBeforeSwapNV(handle, seconds);
+        return platformCanvas.delayBeforeSwapNV(this, seconds);
     }
 
 }

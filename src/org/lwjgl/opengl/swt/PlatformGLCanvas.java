@@ -13,13 +13,13 @@ interface PlatformGLCanvas {
 
     boolean isCurrent(long context);
 
-    boolean makeCurrent(long windowHandle, long context);
+    boolean makeCurrent(GLCanvas canvas, long context);
 
     boolean deleteContext(long context);
 
-    boolean swapBuffers(long windowHandle);
+    boolean swapBuffers(GLCanvas canvas);
 
-    boolean delayBeforeSwapNV(long windowHandle, float seconds);
+    boolean delayBeforeSwapNV(GLCanvas canvas, float seconds);
 
     int checkStyle(Composite parent, int style);
 

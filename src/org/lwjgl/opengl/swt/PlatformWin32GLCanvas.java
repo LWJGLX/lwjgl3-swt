@@ -819,10 +819,10 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         return ret == context;
     }
 
-    public boolean makeCurrent(long windowHandle, long context) {
-        long hDC = User32.GetDC(windowHandle);
+    public boolean makeCurrent(GLCanvas canvas, long context) {
+        long hDC = User32.GetDC(canvas.handle);
         int ret = JNI.callPPI(wgl.MakeCurrent, hDC, context);
-        User32.ReleaseDC(windowHandle, hDC);
+        User32.ReleaseDC(canvas.handle, hDC);
         return ret == 1;
     }
 
@@ -831,14 +831,14 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         return ret == 1;
     }
 
-    public boolean swapBuffers(long windowHandle) {
-        long hDC = User32.GetDC(windowHandle);
+    public boolean swapBuffers(GLCanvas canvas) {
+        long hDC = User32.GetDC(canvas.handle);
         int ret = GDI32.SwapBuffers(hDC);
-        User32.ReleaseDC(windowHandle, hDC);
+        User32.ReleaseDC(canvas.handle, hDC);
         return ret == 1;
     }
 
-    public boolean delayBeforeSwapNV(long windowHandle, float seconds) {
+    public boolean delayBeforeSwapNV(GLCanvas canvas, float seconds) {
         if (!wglDelayBeforeSwapNVAddr_set) {
             APIBuffer buffer = APIUtil.apiBuffer();
             int procEncoded = buffer.stringParamASCII("wglDelayBeforeSwapNV", true);
@@ -849,9 +849,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         if (wglDelayBeforeSwapNVAddr == 0L) {
             throw new UnsupportedOperationException("wglDelayBeforeSwapNV is unavailable");
         }
-        long hDC = User32.GetDC(windowHandle);
+        long hDC = User32.GetDC(canvas.handle);
         int ret = JNI.callPFI(wglDelayBeforeSwapNVAddr, hDC, seconds);
-        User32.ReleaseDC(windowHandle, hDC);
+        User32.ReleaseDC(canvas.handle, hDC);
         return ret == 1;
     }
 
