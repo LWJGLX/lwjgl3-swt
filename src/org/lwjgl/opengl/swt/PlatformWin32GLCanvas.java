@@ -646,7 +646,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                     JNI.callPI(wgl.DeleteContext, dummyContext);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     throw new SWTException(
-                            "Robustness isolation requested but neither WGL_ARB_robustness_application_isolation nor WGL_ARB_robustness_share_group_isolation is unavailable");
+                            "Robustness isolation requested but neither WGL_ARB_robustness_application_isolation nor WGL_ARB_robustness_share_group_isolation available");
                 }
                 contextFlags |= WGLARBRobustnessApplicationIsolation.WGL_CONTEXT_RESET_ISOLATION_BIT_ARB;
             }
