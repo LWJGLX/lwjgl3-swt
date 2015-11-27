@@ -102,6 +102,7 @@ public class GLCanvas extends Canvas {
      * </ul>
      */
     public GLData getGLData() {
+        checkWidget();
         return effective;
     }
 
@@ -156,6 +157,7 @@ public class GLCanvas extends Canvas {
      * @return <code>true</code> if the implementation had to wait for the synchronized swap; <code>false</code> otherwise
      */
     public boolean delayBeforeSwapNV(float seconds) {
+        checkWidget();
         return GLContext.delayBeforeSwapNV(handle, seconds);
     }
 
