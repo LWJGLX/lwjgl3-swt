@@ -7,8 +7,11 @@ import java.util.Set;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
+import org.lwjgl.system.FunctionProvider;
 import org.lwjgl.system.JNI;
 import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.APIUtil.APIVersion;
+import org.lwjgl.system.Checks;
 import org.lwjgl.system.windows.GDI32;
 import org.lwjgl.system.windows.PIXELFORMATDESCRIPTOR;
 import org.lwjgl.system.windows.User32;
@@ -21,10 +24,11 @@ import org.lwjgl.system.windows.User32;
 public class Win32ContextFunctions implements ContextFunctions {
 
     private static final WGL wgl;
+    private static final FunctionProvider gl;
 
     static {
         // Cache the WGL instance
-        wgl = new WGL(GL.getFunctionProvider());
+        wgl = new WGL(gl = GL.getFunctionProvider());
     }
 
     private long wglDelayBeforeSwapNVAddr = 0L;
@@ -234,12 +238,11 @@ public class Win32ContextFunctions implements ContextFunctions {
             throw new OpenGLContextException("Failed to create OpenGL context");
         }
 
-        APIBuffer buffer = APIUtil.apiBuffer();
-        long bufferAddr = buffer.address();
+        final APIBuffer buffer = APIUtil.apiBuffer();
 
         // Save current context to restore it later
-        long currentContext = JNI.callP(wgl.GetCurrentContext);
-        long currentDc = JNI.callP(wgl.GetCurrentDC);
+        final long currentContext = JNI.callP(wgl.GetCurrentContext);
+        final long currentDc = JNI.callP(wgl.GetCurrentDC);
 
         // Make the new dummy context current
         int success = JNI.callPPI(wgl.MakeCurrent, hDCdummy, dummyContext);
@@ -344,7 +347,7 @@ public class Win32ContextFunctions implements ContextFunctions {
                 // Make context current to join swap group and/or barrier
                 success = JNI.callPPI(wgl.MakeCurrent, hDC, context);
                 try {
-                    wglNvSwapGroupAndBarrier(attribs, buffer, bufferAddr, hDC);
+                    wglNvSwapGroupAndBarrier(attribs, buffer, buffer.address(), hDC);
                 } catch (OpenGLContextException e) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -475,7 +478,7 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
-            int succ = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, bufferAddr + 4, bufferAddr);
+            int succ = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, buffer.address() + 4, buffer.address());
             int numFormats = buffer.buffer().getInt(0);
             if (succ == 0 || numFormats == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
@@ -630,6 +633,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             throw new OpenGLContextException("Failed to create OpenGL context.");
         }
+        // Make context current for next operations
+        JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
         if (attribs.swapInterval != null) {
             boolean has_WGL_EXT_swap_control = wglExtensionsList.contains("WGL_EXT_swap_control");
             if (!has_WGL_EXT_swap_control) {
@@ -646,8 +651,6 @@ public class Win32ContextFunctions implements ContextFunctions {
                     throw new OpenGLContextException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
                 }
             }
-            // Make context current to set the swap interval
-            JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             procEncoded = buffer.stringParamASCII("wglSwapIntervalEXT", true);
             adr = buffer.address(procEncoded);
             long wglSwapIntervalEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
@@ -663,10 +666,8 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("Swap group or barrier requested but WGL_NV_swap_group is unavailable");
             }
-            // Make context current to join swap group and/or barrier
-            success = JNI.callPPI(wgl.MakeCurrent, hDC, newCtx);
             try {
-                wglNvSwapGroupAndBarrier(attribs, buffer, bufferAddr, hDC);
+                wglNvSwapGroupAndBarrier(attribs, buffer, buffer.address(), hDC);
             } catch (OpenGLContextException e) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -674,6 +675,45 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
         }
         User32.ReleaseDC(windowHandle, hDC);
+        long getInteger = gl.getFunctionAddress("glGetIntegerv");
+        if (atLeast30(attribs.majorVersion, attribs.minorVersion)) {
+            JNI.callIPV(getInteger, GL30.GL_MAJOR_VERSION, buffer.address());
+            effective.majorVersion = buffer.intValue(0);
+            JNI.callIPV(getInteger, GL30.GL_MINOR_VERSION, buffer.address());
+            effective.minorVersion = buffer.intValue(0);
+            JNI.callIPV(getInteger, GL30.GL_CONTEXT_FLAGS, buffer.address());
+            int effectiveContextFlags = buffer.intValue(0);
+            effective.debug = (effectiveContextFlags & GL43.GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
+            effective.forwardCompatible = (effectiveContextFlags & GL30.GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0;
+            effective.robustness = (effectiveContextFlags & ARBRobustness.GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB) != 0;
+        } else {
+            long getString = gl.getFunctionAddress("glGetString");
+            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memDecodeUTF8(Checks.checkPointer(JNI.callIP(getString, GL11.GL_VERSION))));
+            effective.majorVersion = version.major;
+            effective.minorVersion = version.minor;
+        }
+        if (atLeast32(attribs.majorVersion, attribs.minorVersion)) {
+            JNI.callIPV(getInteger, GL32.GL_CONTEXT_PROFILE_MASK, buffer.address());
+            int effectiveProfileMask = buffer.intValue(0);
+            boolean core = (effectiveProfileMask & GL32.GL_CONTEXT_CORE_PROFILE_BIT) != 0;
+            boolean comp = (effectiveProfileMask & GL32.GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) != 0;
+            if (comp) {
+                effective.profile = GLContextAttributes.OPENGL_COMPATIBILITY_PROFILE;
+            } else if (core) {
+                effective.profile = GLContextAttributes.OPENGL_CORE_PROFILE;
+            } else {
+                effective.profile = 0;
+            }
+        }
+        JNI.callIPV(getInteger, ARBMultisample.GL_SAMPLES_ARB, buffer.address());
+        effective.samples = buffer.intValue(0);
+        JNI.callIPV(getInteger, ARBMultisample.GL_SAMPLE_BUFFERS_ARB, buffer.address());
+        effective.sampleBuffers = buffer.intValue(0);
+        boolean has_WGL_NV_multisample_coverage = wglExtensionsList.contains("WGL_NV_multisample_coverage");
+        if (has_WGL_NV_multisample_coverage) {
+            JNI.callIPV(getInteger, NVMultisampleCoverage.GL_COLOR_SAMPLES_NV, buffer.address());
+            effective.colorSamplesNV = buffer.intValue(0);
+        }
         // Restore old context
         JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
         return newCtx;
