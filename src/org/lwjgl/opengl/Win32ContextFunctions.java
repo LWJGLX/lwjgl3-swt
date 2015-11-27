@@ -364,8 +364,8 @@ public class Win32ContextFunctions implements ContextFunctions {
 
             /* Check if we want to share context */
             if (attribs.shareContext != 0L) {
-                int succ = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
-                if (succ == 0) {
+                success = JNI.callPPI(wgl.ShareLists, context, attribs.shareContext);
+                if (success == 0) {
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                     JNI.callPI(wgl.DeleteContext, context);
                     throw new OpenGLContextException("Failed while configuring context sharing.");
@@ -478,9 +478,9 @@ public class Win32ContextFunctions implements ContextFunctions {
             }
             // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
-            int succ = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, buffer.address() + 4, buffer.address());
+            success = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, buffer.address() + 4, buffer.address());
             int numFormats = buffer.buffer().getInt(0);
-            if (succ == 0 || numFormats == 0) {
+            if (success == 0 || numFormats == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
@@ -498,12 +498,18 @@ public class Win32ContextFunctions implements ContextFunctions {
             // Obtain extended pixel format attributes
             procEncoded = buffer.stringParamASCII("wglGetPixelFormatAttribivARB", true);
             adr = buffer.address(procEncoded);
-            long wglGetPixelFormatAttribivEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
-            if (wglGetPixelFormatAttribivEXTAddr == 0L) {
-                User32.ReleaseDC(windowHandle, hDC);
-                JNI.callPI(wgl.DeleteContext, dummyContext);
-                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                throw new OpenGLContextException("No support for wglGetPixelFormatAttribivARB. Cannot get effective pixel formats attributes.");
+            long wglGetPixelFormatAttribivAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglGetPixelFormatAttribivAddr == 0L) {
+                // Try EXT function (function signature is the same)
+                procEncoded = buffer.stringParamASCII("wglGetPixelFormatAttribivEXT", true);
+                adr = buffer.address(procEncoded);
+                wglGetPixelFormatAttribivAddr = JNI.callPP(wgl.GetProcAddress, adr);
+                if (wglGetPixelFormatAttribivAddr == 0L) {
+                    User32.ReleaseDC(windowHandle, hDC);
+                    JNI.callPI(wgl.DeleteContext, dummyContext);
+                    JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    throw new OpenGLContextException("No support for wglGetPixelFormatAttribivARB/EXT. Cannot get effective pixel format attributes.");
+                }
             }
             attribList.rewind();
             attribList.put(WGLARBPixelFormat.WGL_DOUBLE_BUFFER_ARB);
@@ -521,8 +527,8 @@ public class Win32ContextFunctions implements ContextFunctions {
             attribList.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB);
             IntBuffer attribValues = BufferUtils.createIntBuffer(attribList.position());
             long attribValuesAddr = MemoryUtil.memAddress(attribValues);
-            succ = JNI.callPIIIPPI(wglGetPixelFormatAttribivEXTAddr, hDC, pixelFormat, 0, attribList.position(), attribListAddr, attribValuesAddr);
-            if (succ == 0) {
+            success = JNI.callPIIIPPI(wglGetPixelFormatAttribivAddr, hDC, pixelFormat, GDI32.PFD_MAIN_PLANE, attribList.position(), attribListAddr, attribValuesAddr);
+            if (success == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPI(wgl.DeleteContext, dummyContext);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
