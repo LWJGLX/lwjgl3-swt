@@ -177,7 +177,7 @@ public class GLData {
         attribs.accumAlphaSize = accumAlphaSize;
         attribs.accumBlueSize = accumBlueSize;
         attribs.accumGreenSize = accumGreenSize;
-        attribs.accumGreenSize = accumGreenSize;
+        attribs.accumRedSize = accumRedSize;
         attribs.alphaSize = alphaSize;
         attribs.blueSize = blueSize;
         attribs.profile = profile;
@@ -205,6 +205,43 @@ public class GLData {
         attribs.contextResetIsolation = contextResetIsolation;
         attribs.shareContext = shareContext != null ? shareContext.context : 0L;
         return attribs;
+    }
+
+    /**
+     * Convert the given {@link GLContextAttributes} to an equivalent {@link GLData} object.
+     * 
+     * @return the created {@link GLData} object
+     */
+    public void fromContextAttributes(GLContextAttributes ctx) {
+        accumAlphaSize = ctx.accumAlphaSize;
+        accumBlueSize = ctx.accumBlueSize;
+        accumGreenSize = ctx.accumGreenSize;
+        accumRedSize = ctx.accumRedSize;
+        alphaSize = ctx.alphaSize;
+        blueSize = ctx.blueSize;
+        profile = ctx.profile;
+        debug = ctx.debug;
+        depthSize = ctx.depthSize;
+        doubleBuffer = ctx.doubleBuffer;
+        forwardCompatible = ctx.forwardCompatible;
+        greenSize = ctx.greenSize;
+        majorVersion = ctx.majorVersion;
+        minorVersion = ctx.minorVersion;
+        redSize = ctx.redSize;
+        sampleBuffers = ctx.sampleBuffers;
+        samples = ctx.samples;
+        stencilSize = ctx.stencilSize;
+        stereo = ctx.stereo;
+        swapInterval = ctx.swapInterval;
+        sRGB = ctx.sRGB;
+        pixelFormatFloat = ctx.floatPixelFormat;
+        contextReleaseBehavior = ctx.contextReleaseBehavior;
+        colorSamplesNV = ctx.colorSamplesNV;
+        swapGroupNV = ctx.swapGroupNV;
+        swapBarrierNV = ctx.swapBarrierNV;
+        robustness = ctx.robustness;
+        loseContextOnReset = ctx.loseContextOnReset;
+        contextResetIsolation = ctx.contextResetIsolation;
     }
 
 }

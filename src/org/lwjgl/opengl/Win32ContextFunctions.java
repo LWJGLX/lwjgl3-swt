@@ -188,7 +188,7 @@ public class Win32ContextFunctions implements ContextFunctions {
      * @return the opaque handle of the new context
      * @throws OpenGLContextException
      */
-    public long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs) throws OpenGLContextException {
+    public long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs, GLContextAttributes effective) throws OpenGLContextException {
         // Validate context attributes
         validateAttributes(attribs);
 
@@ -369,6 +369,27 @@ public class Win32ContextFunctions implements ContextFunctions {
                 }
             }
 
+            // Describe pixel format
+            int pixFmtIndex = GDI32.DescribePixelFormat(hDC, pixelFormat, pfd);
+            if (pixFmtIndex == 0) {
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                JNI.callPI(wgl.DeleteContext, context);
+                throw new OpenGLContextException("Failed to describe pixel format.");
+            }
+            effective.redSize = pfd.cRedBits();
+            effective.greenSize = pfd.cGreenBits();
+            effective.blueSize = pfd.cBlueBits();
+            effective.alphaSize = pfd.cAlphaBits();
+            effective.depthSize = pfd.cDepthBits();
+            effective.stencilSize = pfd.cStencilBits();
+            int pixelFormatFlags = pfd.dwFlags();
+            effective.doubleBuffer = (pixelFormatFlags & GDI32.PFD_DOUBLEBUFFER) != 0;
+            effective.stereo = (pixelFormatFlags & GDI32.PFD_STEREO) != 0;
+            effective.accumRedSize = pfd.cAccumRedBits();
+            effective.accumGreenSize = pfd.cAccumGreenBits();
+            effective.accumBlueSize = pfd.cAccumBlueBits();
+            effective.accumAlphaSize = pfd.cAccumAlphaBits();
+
             // Restore old context
             JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
             return context;
@@ -471,6 +492,53 @@ public class Win32ContextFunctions implements ContextFunctions {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new OpenGLContextException("Failed to validate supported pixel format.");
             }
+            // Obtain extended pixel format attributes
+            procEncoded = buffer.stringParamASCII("wglGetPixelFormatAttribivARB", true);
+            adr = buffer.address(procEncoded);
+            long wglGetPixelFormatAttribivEXTAddr = JNI.callPP(wgl.GetProcAddress, adr);
+            if (wglGetPixelFormatAttribivEXTAddr == 0L) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("No support for wglGetPixelFormatAttribivARB. Cannot get effective pixel formats attributes.");
+            }
+            attribList.rewind();
+            attribList.put(WGLARBPixelFormat.WGL_DOUBLE_BUFFER_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_STEREO_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_PIXEL_TYPE_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_RED_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_GREEN_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_BLUE_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_ALPHA_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_ACCUM_RED_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_ACCUM_GREEN_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_ACCUM_BLUE_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_ACCUM_ALPHA_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_DEPTH_BITS_ARB);
+            attribList.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB);
+            IntBuffer attribValues = BufferUtils.createIntBuffer(attribList.position());
+            long attribValuesAddr = MemoryUtil.memAddress(attribValues);
+            succ = JNI.callPIIIPPI(wglGetPixelFormatAttribivEXTAddr, hDC, pixelFormat, 0, attribList.position(), attribListAddr, attribValuesAddr);
+            if (succ == 0) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new OpenGLContextException("Failed to get pixel format attributes.");
+            }
+            effective.doubleBuffer = attribValues.get(0) == 1;
+            effective.stereo = attribValues.get(1) == 1;
+            int pixelType = attribValues.get(2);
+            effective.floatPixelFormat = pixelType == WGLARBPixelFormatFloat.WGL_TYPE_RGBA_FLOAT_ARB;
+            effective.redSize = attribValues.get(3);
+            effective.greenSize = attribValues.get(4);
+            effective.blueSize = attribValues.get(5);
+            effective.alphaSize = attribValues.get(6);
+            effective.accumRedSize = attribValues.get(7);
+            effective.accumGreenSize = attribValues.get(8);
+            effective.accumBlueSize = attribValues.get(9);
+            effective.accumAlphaSize = attribValues.get(10);
+            effective.depthSize = attribValues.get(11);
+            effective.stencilSize = attribValues.get(12);
         }
 
         // Compose the attributes list

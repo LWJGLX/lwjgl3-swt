@@ -43,8 +43,8 @@ public class GLContext {
      * @return the opaque handle of the new context
      * @throws OpenGLContextException
      */
-    public static long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs) throws OpenGLContextException {
-        return funcs.create(windowHandle, dummyWindowHandle, attribs);
+    public static long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs, GLContextAttributes effective) throws OpenGLContextException {
+        return funcs.create(windowHandle, dummyWindowHandle, attribs, effective);
     }
 
     /**

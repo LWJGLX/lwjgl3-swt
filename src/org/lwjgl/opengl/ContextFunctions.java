@@ -7,7 +7,7 @@ package org.lwjgl.opengl;
  */
 public interface ContextFunctions {
 
-    long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs) throws OpenGLContextException;
+    long create(long windowHandle, long dummyWindowHandle, GLContextAttributes attribs, GLContextAttributes effective) throws OpenGLContextException;
 
     boolean isCurrent(long context);
 

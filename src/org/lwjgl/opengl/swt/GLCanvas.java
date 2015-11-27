@@ -21,6 +21,7 @@ import org.lwjgl.system.Platform;
 public class GLCanvas extends Canvas {
     long context;
     int pixelFormat;
+    GLData effective;
 
     private static PlatformGLCanvas platformCanvas;
     static {
@@ -39,9 +40,9 @@ public class GLCanvas extends Canvas {
         } catch (ClassNotFoundException e) {
             throw new AssertionError("Platform-specific GLCanvas class not found: " + platformClassName);
         } catch (InstantiationException e) {
-            throw new AssertionError("Could not instantiate Platform-specific GLCanvas class: " + platformClassName);
+            throw new AssertionError("Could not instantiate platform-specific GLCanvas class: " + platformClassName);
         } catch (IllegalAccessException e) {
-            throw new AssertionError("Could not instantiate Platform-specific GLCanvas class: " + platformClassName);
+            throw new AssertionError("Could not instantiate platform-specific GLCanvas class: " + platformClassName);
         }
     }
 
@@ -63,11 +64,14 @@ public class GLCanvas extends Canvas {
         if (Platform.get() == Platform.WINDOWS) {
             platformCanvas.resetStyle(parent);
         }
-        if (data == null) SWT.error (SWT.ERROR_NULL_ARGUMENT);
+        if (data == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
         Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
         GLContextAttributes contextAttribs = data.toContextAttributes();
+        GLContextAttributes effectiveAttribs = new GLContextAttributes();
         try {
-            context = GLContext.create(handle, dummycanvas.handle, contextAttribs);
+            context = GLContext.create(handle, dummycanvas.handle, contextAttribs, effectiveAttribs);
+            effective = new GLData();
+            effective.fromContextAttributes(effectiveAttribs);
         } catch (OpenGLContextException e) {
             SWT.error(SWT.ERROR_UNSUPPORTED_DEPTH, e);
         }
@@ -97,8 +101,8 @@ public class GLCanvas extends Canvas {
      *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
      * </ul>
      */
-    public GLData getGLData () {
-        throw new UnsupportedOperationException("NYI");
+    public GLData getGLData() {
+        return effective;
     }
 
     /**
