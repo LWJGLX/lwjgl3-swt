@@ -4,11 +4,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Listener;
-import org.lwjgl.opengl.GLContext;
-import org.lwjgl.opengl.GLContextAttributes;
-import org.lwjgl.opengl.OpenGLContextException;
 import org.lwjgl.system.Platform;
 
 /**
@@ -19,9 +14,8 @@ import org.lwjgl.system.Platform;
  * @author Kai Burjack
  */
 public class GLCanvas extends Canvas {
-    long context;
-    int pixelFormat;
     GLData effective;
+    long context;
 
     private static PlatformGLCanvas platformCanvas;
     static {
@@ -60,36 +54,14 @@ public class GLCanvas extends Canvas {
      * </ul>
      */
     public GLCanvas(Composite parent, int style, GLData data) {
-        super(parent, checkStyle(parent, style));
+        super(parent, platformCanvas.checkStyle(parent, style));
         if (Platform.get() == Platform.WINDOWS) {
             platformCanvas.resetStyle(parent);
         }
-        if (data == null) SWT.error(SWT.ERROR_NULL_ARGUMENT);
-        Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
-        GLContextAttributes contextAttribs = data.toContextAttributes();
-        GLContextAttributes effectiveAttribs = new GLContextAttributes();
-        try {
-            context = GLContext.create(handle, dummycanvas.handle, contextAttribs, effectiveAttribs);
-            effective = new GLData();
-            effective.fromContextAttributes(effectiveAttribs);
-        } catch (OpenGLContextException e) {
-            SWT.error(SWT.ERROR_UNSUPPORTED_DEPTH, e);
-        }
-        dummycanvas.dispose();
-        Listener listener = new Listener() {
-            public void handleEvent(Event event) {
-                switch (event.type) {
-                case SWT.Dispose:
-                    GLContext.deleteContext(context);
-                    break;
-                }
-            }
-        };
-        addListener(SWT.Dispose, listener);
-    }
-
-    private static int checkStyle(Composite parent, int style) {
-        return platformCanvas.checkStyle(parent, style);
+        if (data == null)
+            SWT.error(SWT.ERROR_NULL_ARGUMENT);
+        effective = new GLData();
+        context = platformCanvas.create(this, parent, style, data, effective);
     }
 
     /**
@@ -119,7 +91,7 @@ public class GLCanvas extends Canvas {
      */
     public boolean isCurrent() {
         checkWidget();
-        return GLContext.isCurrent(context);
+        return platformCanvas.isCurrent(context);
     }
 
     /**
@@ -133,9 +105,9 @@ public class GLCanvas extends Canvas {
      */
     public void setCurrent() {
         checkWidget();
-        if (GLContext.isCurrent(context))
+        if (platformCanvas.isCurrent(context))
             return;
-        GLContext.makeCurrent(handle, context);
+        platformCanvas.makeCurrent(handle, context);
     }
 
     /**
@@ -148,7 +120,7 @@ public class GLCanvas extends Canvas {
      */
     public void swapBuffers() {
         checkWidget();
-        GLContext.swapBuffers(handle);
+        platformCanvas.swapBuffers(handle);
     }
 
     /**
@@ -158,7 +130,7 @@ public class GLCanvas extends Canvas {
      */
     public boolean delayBeforeSwapNV(float seconds) {
         checkWidget();
-        return GLContext.delayBeforeSwapNV(handle, seconds);
+        return platformCanvas.delayBeforeSwapNV(handle, seconds);
     }
 
 }

@@ -1,7 +1,5 @@
 package org.lwjgl.opengl.swt;
 
-import org.lwjgl.opengl.GLContext;
-import org.lwjgl.opengl.GLContextAttributes;
 
 /**
  * Drop-in replacement for SWT's {@link org.eclipse.swt.opengl.GLData} class.
@@ -166,82 +164,5 @@ public class GLData {
      * the current application and no other application in the system.
      */
     public boolean contextResetIsolation;
-
-    /**
-     * Convert this {@link GLData} to an equivalent {@link GLContextAttributes} object to be used with {@link GLContext#create(long, GLContextAttributes)}.
-     * 
-     * @return the created {@link GLContextAttributes} object
-     */
-    public GLContextAttributes toContextAttributes() {
-        GLContextAttributes attribs = new GLContextAttributes();
-        attribs.accumAlphaSize = accumAlphaSize;
-        attribs.accumBlueSize = accumBlueSize;
-        attribs.accumGreenSize = accumGreenSize;
-        attribs.accumRedSize = accumRedSize;
-        attribs.alphaSize = alphaSize;
-        attribs.blueSize = blueSize;
-        attribs.profile = profile;
-        attribs.debug = debug;
-        attribs.depthSize = depthSize;
-        attribs.doubleBuffer = doubleBuffer;
-        attribs.forwardCompatible = forwardCompatible;
-        attribs.greenSize = greenSize;
-        attribs.majorVersion = majorVersion;
-        attribs.minorVersion = minorVersion;
-        attribs.redSize = redSize;
-        attribs.sampleBuffers = sampleBuffers;
-        attribs.samples = samples;
-        attribs.stencilSize = stencilSize;
-        attribs.stereo = stereo;
-        attribs.swapInterval = swapInterval;
-        attribs.sRGB = sRGB;
-        attribs.floatPixelFormat = pixelFormatFloat;
-        attribs.contextReleaseBehavior = contextReleaseBehavior;
-        attribs.colorSamplesNV = colorSamplesNV;
-        attribs.swapGroupNV = swapGroupNV;
-        attribs.swapBarrierNV = swapBarrierNV;
-        attribs.robustness = robustness;
-        attribs.loseContextOnReset = loseContextOnReset;
-        attribs.contextResetIsolation = contextResetIsolation;
-        attribs.shareContext = shareContext != null ? shareContext.context : 0L;
-        return attribs;
-    }
-
-    /**
-     * Convert the given {@link GLContextAttributes} to an equivalent {@link GLData} object.
-     * 
-     * @return the created {@link GLData} object
-     */
-    public void fromContextAttributes(GLContextAttributes ctx) {
-        accumAlphaSize = ctx.accumAlphaSize;
-        accumBlueSize = ctx.accumBlueSize;
-        accumGreenSize = ctx.accumGreenSize;
-        accumRedSize = ctx.accumRedSize;
-        alphaSize = ctx.alphaSize;
-        blueSize = ctx.blueSize;
-        profile = ctx.profile;
-        debug = ctx.debug;
-        depthSize = ctx.depthSize;
-        doubleBuffer = ctx.doubleBuffer;
-        forwardCompatible = ctx.forwardCompatible;
-        greenSize = ctx.greenSize;
-        majorVersion = ctx.majorVersion;
-        minorVersion = ctx.minorVersion;
-        redSize = ctx.redSize;
-        sampleBuffers = ctx.sampleBuffers;
-        samples = ctx.samples;
-        stencilSize = ctx.stencilSize;
-        stereo = ctx.stereo;
-        swapInterval = ctx.swapInterval;
-        sRGB = ctx.sRGB;
-        pixelFormatFloat = ctx.floatPixelFormat;
-        contextReleaseBehavior = ctx.contextReleaseBehavior;
-        colorSamplesNV = ctx.colorSamplesNV;
-        swapGroupNV = ctx.swapGroupNV;
-        swapBarrierNV = ctx.swapBarrierNV;
-        robustness = ctx.robustness;
-        loseContextOnReset = ctx.loseContextOnReset;
-        contextResetIsolation = ctx.contextResetIsolation;
-    }
 
 }
