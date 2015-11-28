@@ -86,19 +86,6 @@ public class GLData {
     }
 
     /**
-     * Constant for the core profile. This is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
-     * 
-     * @see #profile
-     */
-    public static final int OPENGL_CORE_PROFILE = 1;
-    /**
-     * Constant for the compatibility profile.
-     * 
-     * @see #profile
-     */
-    public static final int OPENGL_COMPATIBILITY_PROFILE = 2;
-
-    /**
      * Constant for doing nothing on context switch.
      * 
      * @see #contextReleaseBehavior
