@@ -28,8 +28,11 @@ import org.lwjgl.opengl.WGLARBMultisample;
 import org.lwjgl.opengl.WGLARBPixelFormat;
 import org.lwjgl.opengl.WGLARBPixelFormatFloat;
 import org.lwjgl.opengl.WGLARBRobustnessApplicationIsolation;
+import org.lwjgl.opengl.WGLEXTCreateContextES2Profile;
 import org.lwjgl.opengl.WGLEXTFramebufferSRGB;
 import org.lwjgl.opengl.WGLNVMultisampleCoverage;
+import org.lwjgl.opengl.swt.GLData.API;
+import org.lwjgl.opengl.swt.GLData.Profile;
 import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.APIUtil.APIVersion;
@@ -68,9 +71,20 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         return major == 3 && minor >= 0 || major > 3;
     }
 
-    private static boolean validVersion(int major, int minor) {
-        return (major == 0 && minor == 0) || (major >= 1 && minor >= 0) && (major != 1 || minor <= 5) && (major != 2 || minor <= 1)
-                && (major != 3 || minor <= 3) && (major != 4 || minor <= 5);
+    private static boolean validVersionGL(int major, int minor) {
+        return (major == 0 && minor == 0) || // unspecified gets highest supported version on Nvidia
+               (major >= 1 && minor >= 0) &&
+               (major != 1 || minor <= 5) &&
+               (major != 2 || minor <= 1) &&
+               (major != 3 || minor <= 3) &&
+               (major != 4 || minor <= 5);
+    }
+
+    private static boolean validVersionGLES(int major, int minor) {
+        return (major == 0 && minor == 0) || // unspecified gets 1.1 on Nvidia
+               (major >= 1 && minor >= 0) &&
+               (major != 1 || minor <= 1) &&
+               (major != 2 || minor <= 0);
     }
 
     /**
@@ -101,18 +115,20 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
         }
-        if (attribs.profile != 0
-                && (attribs.profile < GLData.OPENGL_CORE_PROFILE || attribs.profile > GLData.OPENGL_COMPATIBILITY_PROFILE)) {
-            throw new IllegalArgumentException("Invalid profile.");
-        }
         if (attribs.samples < 0) {
             throw new IllegalArgumentException("Invalid samples count");
         }
-        if (attribs.profile > 0 && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
+        if (attribs.profile != null && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Context profiles are only defined for OpenGL version 3.2 and above");
         }
-        if (!validVersion(attribs.majorVersion, attribs.minorVersion)) {
+        if (attribs.api == null) {
+            throw new IllegalArgumentException("Unspecified client API");
+        }
+        if (attribs.api == API.GL && !validVersionGL(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Invalid OpenGL version");
+        }
+        if (attribs.api == API.GLES && !validVersionGLES(attribs.majorVersion, attribs.minorVersion)) {
+            throw new IllegalArgumentException("Invalid OpenGL ES version");
         }
         if (attribs.contextReleaseBehavior != 0
                 && (attribs.contextReleaseBehavior < GLData.CONTEXT_RELEASE_BEHAVIOR_NONE || attribs.contextReleaseBehavior > GLData.CONTEXT_RELEASE_BEHAVIOR_FLUSH)) {
@@ -336,7 +352,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
         // For some constellations of context attributes, we can stop right here.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples == 0 && !attribs.sRGB && !attribs.pixelFormatFloat
-                && attribs.contextReleaseBehavior == 0 && !attribs.robustness) {
+                && attribs.contextReleaseBehavior == 0 && !attribs.robustness && attribs.api != API.GLES) {
             /* Finally, create the real context on the real window */
             long hDC = User32.GetDC(windowHandle);
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
@@ -595,15 +611,27 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
         // Compose the attributes list
         attribList.rewind();
-        if (atLeast30(attribs.majorVersion, attribs.minorVersion)) {
+        if (attribs.api == API.GL && atLeast30(attribs.majorVersion, attribs.minorVersion) ||
+            attribs.api == API.GLES && attribs.majorVersion > 0) {
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_MAJOR_VERSION_ARB).put(attribs.majorVersion);
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_MINOR_VERSION_ARB).put(attribs.minorVersion);
         }
         int profile = 0;
-        if (attribs.profile == GLData.OPENGL_COMPATIBILITY_PROFILE) {
-            profile = WGLARBCreateContextProfile.WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
-        } else if (attribs.profile == GLData.OPENGL_CORE_PROFILE) {
-            profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+        if (attribs.api == API.GL) {
+            if (attribs.profile == Profile.COMPATIBILITY) {
+                profile = WGLARBCreateContextProfile.WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+            } else if (attribs.profile == Profile.CORE) {
+                profile = WGLARBCreateContextProfile.WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+            }
+        } else if (attribs.api == API.GLES) {
+            boolean has_WGL_EXT_create_context_es2_profile = wglExtensionsList.contains("WGL_EXT_create_context_es2_profile");
+            if (!has_WGL_EXT_create_context_es2_profile) {
+                User32.ReleaseDC(windowHandle, hDC);
+                JNI.callPI(wgl.DeleteContext, dummyContext);
+                JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                throw new SWTException("OpenGL ES API requested but WGL_EXT_create_context_es2_profile is unavailable");
+            }
+            profile = WGLEXTCreateContextES2Profile.WGL_CONTEXT_ES2_PROFILE_BIT_EXT;
         }
         if (profile > 0) {
             boolean has_WGL_ARB_create_context_profile = wglExtensionsList.contains("WGL_ARB_create_context_profile");
@@ -691,6 +719,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             if (!has_WGL_EXT_swap_control) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                JNI.callPI(wgl.DeleteContext, newCtx);
                 throw new SWTException("Swap interval requested but WGL_EXT_swap_control is unavailable");
             }
             if (attribs.swapInterval < 0) {
@@ -699,6 +728,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 if (!has_WGL_EXT_swap_control_tear) {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                    JNI.callPI(wgl.DeleteContext, newCtx);
                     throw new SWTException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
                 }
             }
@@ -715,6 +745,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             if (!has_WGL_NV_swap_group) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                JNI.callPI(wgl.DeleteContext, newCtx);
                 throw new SWTException("Swap group or barrier requested but WGL_NV_swap_group is unavailable");
             }
             try {
@@ -722,11 +753,14 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             } catch (SWTException e) {
                 User32.ReleaseDC(windowHandle, hDC);
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
+                JNI.callPI(wgl.DeleteContext, newCtx);
                 throw e;
             }
         }
         User32.ReleaseDC(windowHandle, hDC);
         long getInteger = gl.getFunctionAddress("glGetIntegerv");
+        long getString = gl.getFunctionAddress("glGetString");
+        effective.api = attribs.api;
         if (atLeast30(attribs.majorVersion, attribs.minorVersion)) {
             JNI.callIPV(getInteger, GL30.GL_MAJOR_VERSION, buffer.address());
             effective.majorVersion = buffer.intValue(0);
@@ -738,22 +772,21 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             effective.forwardCompatible = (effectiveContextFlags & GL30.GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0;
             effective.robustness = (effectiveContextFlags & ARBRobustness.GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB) != 0;
         } else {
-            long getString = gl.getFunctionAddress("glGetString");
-            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memDecodeUTF8(Checks.checkPointer(JNI.callIP(getString, GL11.GL_VERSION))));
+            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memDecodeUTF8(Checks.checkPointer(JNI.callIP(getString, GL11.GL_VERSION))), "OpenGL ES");
             effective.majorVersion = version.major;
             effective.minorVersion = version.minor;
         }
-        if (atLeast32(effective.majorVersion, effective.minorVersion)) {
+        if (attribs.api == API.GL && atLeast32(effective.majorVersion, effective.minorVersion)) {
             JNI.callIPV(getInteger, GL32.GL_CONTEXT_PROFILE_MASK, buffer.address());
             int effectiveProfileMask = buffer.intValue(0);
             boolean core = (effectiveProfileMask & GL32.GL_CONTEXT_CORE_PROFILE_BIT) != 0;
             boolean comp = (effectiveProfileMask & GL32.GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) != 0;
             if (comp) {
-                effective.profile = GLData.OPENGL_COMPATIBILITY_PROFILE;
+                effective.profile = Profile.COMPATIBILITY;
             } else if (core) {
-                effective.profile = GLData.OPENGL_CORE_PROFILE;
+                effective.profile = Profile.CORE;
             } else {
-                effective.profile = 0;
+                effective.profile = null;
             }
         }
         if (attribs.samples >= 1) {

@@ -77,6 +77,14 @@ public class GLData {
      * New fields not in SWT's GLData
      */
 
+    public static enum Profile {
+        CORE, COMPATIBILITY;
+    }
+
+    public static enum API {
+        GL, GLES;
+    }
+
     /**
      * Constant for the core profile. This is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
      * 
@@ -116,9 +124,13 @@ public class GLData {
      */
     public boolean forwardCompatible;
     /**
-     * The profile to use. Defaults to 0, which means "not specified".
+     * The profile to use. It defaults to desktop GL.
      */
-    public int profile;
+    public Profile profile;
+    /**
+     * The client API to use.
+     */
+    public API api = API.GL;
     /**
      * Whether a debug context should be requested.
      */
