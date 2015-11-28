@@ -9,7 +9,7 @@ import org.eclipse.swt.widgets.Composite;
  */
 interface PlatformGLCanvas {
 
-    long create(GLCanvas canvas, Composite parent, int style, GLData attribs, GLData effective);
+    long create(GLCanvas canvas, GLData attribs, GLData effective);
 
     boolean isCurrent(long context);
 

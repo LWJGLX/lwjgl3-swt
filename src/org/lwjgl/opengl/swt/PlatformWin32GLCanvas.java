@@ -211,8 +211,8 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.FALSE);
     }
 
-    public long create(GLCanvas canvas, Composite parent, int style, GLData attribs, GLData effective) {
-        Canvas dummycanvas = new Canvas(parent, checkStyle(parent, style));
+    public long create(GLCanvas canvas, GLData attribs, GLData effective) {
+        Canvas dummycanvas = new Canvas(canvas.getParent(), checkStyle(canvas.getParent(), canvas.getStyle()));
         long context = 0L;
         try {
             context = create(canvas.handle, dummycanvas.handle, attribs, effective);

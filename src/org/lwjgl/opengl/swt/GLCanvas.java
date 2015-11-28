@@ -61,7 +61,7 @@ public class GLCanvas extends Canvas {
         if (data == null)
             SWT.error(SWT.ERROR_NULL_ARGUMENT);
         effective = new GLData();
-        context = platformCanvas.create(this, parent, style, data, effective);
+        context = platformCanvas.create(this, data, effective);
     }
 
     /**
