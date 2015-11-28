@@ -5,7 +5,8 @@ Revised drop-in implementation of SWT's GLCanvas.
 ## What does it get me?
 
 Support for:
-- creating OpenGL 3.0 and 3.2 core/compatibility contexts (including debug context)
+- creating OpenGL 3.0 and 3.2 core/compatibility contexts (including debug/forward compatible)
+- OpenGL ES contexts
 - floating-point and sRGB pixel formats
 - multisampled framebuffers (also with different number of color samples - Nvidia only)
 - v-sync/swap control
@@ -51,6 +52,5 @@ GLCanvas canvas = new GLCanvas(shell, 0, data);
 
 Support for:
 - Linux and OS X
-- OpenGL ES
 - associating rendering contexts with specific GPUs on Nvidia and AMD
 - pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)
