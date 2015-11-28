@@ -107,15 +107,15 @@ public class GLData {
      */
     public int minorVersion;
     /**
-     * Whether a forward-compatible context should be created. This has only an effect when ({@link #majorVersion}. {@link #minorVersion}) is at least 3.2.
+     * Whether a forward-compatible context should be created. This has only an effect when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.2.
      */
     public boolean forwardCompatible;
     /**
-     * The profile to use. It defaults to desktop GL.
+     * The profile to use. This is only valid when ({@link #majorVersion}.{@link #minorVersion}) is at least 3.0.
      */
     public Profile profile;
     /**
-     * The client API to use.
+     * The client API to use. It defaults to {@link API#GL OpenGL for Desktop}.
      */
     public API api = API.GL;
     /**
