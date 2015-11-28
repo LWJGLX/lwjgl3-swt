@@ -18,6 +18,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.swt.GLData.Profile;
 
 /**
  * SWT with OpenGL 3.3 core, multisampling and v-sync.
@@ -40,7 +41,7 @@ public class Swt33CoreMsDemo {
 		GLData data = new GLData();
 		data.majorVersion = 3;
 		data.minorVersion = 3;
-		data.profile = GLData.OPENGL_CORE_PROFILE;
+		data.profile = Profile.CORE;
 		data.samples = 4;
 		data.swapInterval = 1;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
