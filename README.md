@@ -41,7 +41,7 @@ Display display = new Display();
 Shell shell = new Shell(display);
 shell.setLayout(new FillLayout());
 GLData data = new GLData();
-data.profile = GLData.OPENGL_CORE_PROFILE;
+data.profile = GLData.Profile.CORE;
 data.majorVersion = 3;
 data.minorVersion = 2;
 data.samples = 4; // 4x multisampling
