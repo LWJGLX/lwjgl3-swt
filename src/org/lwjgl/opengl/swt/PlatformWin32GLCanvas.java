@@ -33,6 +33,7 @@ import org.lwjgl.opengl.WGLEXTFramebufferSRGB;
 import org.lwjgl.opengl.WGLNVMultisampleCoverage;
 import org.lwjgl.opengl.swt.GLData.API;
 import org.lwjgl.opengl.swt.GLData.Profile;
+import org.lwjgl.opengl.swt.GLData.ReleaseBehavior;
 import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.APIUtil.APIVersion;
@@ -129,10 +130,6 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         if (attribs.api == API.GLES && !validVersionGLES(attribs.majorVersion, attribs.minorVersion)) {
             throw new IllegalArgumentException("Invalid OpenGL ES version");
-        }
-        if (attribs.contextReleaseBehavior != 0
-                && (attribs.contextReleaseBehavior < GLData.CONTEXT_RELEASE_BEHAVIOR_NONE || attribs.contextReleaseBehavior > GLData.CONTEXT_RELEASE_BEHAVIOR_FLUSH)) {
-            throw new IllegalArgumentException("Invalid context release behavior");
         }
         if (!attribs.doubleBuffer && attribs.swapInterval != null) {
             throw new IllegalArgumentException("Swap interval set but not using double buffering");
@@ -352,7 +349,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
         // For some constellations of context attributes, we can stop right here.
         if (!atLeast30(attribs.majorVersion, attribs.minorVersion) && attribs.samples == 0 && !attribs.sRGB && !attribs.pixelFormatFloat
-                && attribs.contextReleaseBehavior == 0 && !attribs.robustness && attribs.api != API.GLES) {
+                && attribs.contextReleaseBehavior == null && !attribs.robustness && attribs.api != API.GLES) {
             /* Finally, create the real context on the real window */
             long hDC = User32.GetDC(windowHandle);
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
@@ -681,7 +678,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         if (contextFlags > 0)
             attribList.put(WGLARBCreateContext.WGL_CONTEXT_FLAGS_ARB).put(contextFlags);
-        if (attribs.contextReleaseBehavior > 0) {
+        if (attribs.contextReleaseBehavior != null) {
             boolean has_WGL_ARB_context_flush_control = wglExtensionsList.contains("WGL_ARB_context_flush_control");
             if (!has_WGL_ARB_context_flush_control) {
                 User32.ReleaseDC(windowHandle, hDC);
@@ -689,9 +686,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
                 throw new SWTException("Context release behavior requested but WGL_ARB_context_flush_control is unavailable");
             }
-            if (attribs.contextReleaseBehavior == GLData.CONTEXT_RELEASE_BEHAVIOR_NONE)
+            if (attribs.contextReleaseBehavior == ReleaseBehavior.NONE)
                 attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB).put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB);
-            else if (attribs.contextReleaseBehavior == GLData.CONTEXT_RELEASE_BEHAVIOR_FLUSH)
+            else if (attribs.contextReleaseBehavior == ReleaseBehavior.FLUSH)
                 attribList.put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_ARB)
                         .put(WGLARBContextFlushControl.WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB);
         }

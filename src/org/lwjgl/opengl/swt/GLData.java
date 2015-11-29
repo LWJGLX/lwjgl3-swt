@@ -85,18 +85,9 @@ public class GLData {
         GL, GLES;
     }
 
-    /**
-     * Constant for doing nothing on context switch.
-     * 
-     * @see #contextReleaseBehavior
-     */
-    public static final int CONTEXT_RELEASE_BEHAVIOR_NONE = 1;
-    /**
-     * Constant for flushing GL pipeline on context switch.
-     * 
-     * @see #contextReleaseBehavior
-     */
-    public static final int CONTEXT_RELEASE_BEHAVIOR_FLUSH = 2;
+    public static enum ReleaseBehavior {
+        NONE, FLUSH;
+    }
 
     /**
      * The major GL context version to use. It defaults to 0 for "not specified".
@@ -123,7 +114,7 @@ public class GLData {
      */
     public boolean debug;
     /**
-     * Set the swap interval.
+     * Set the swap interval. It defaults to <code>null</code> for "not specified".
      */
     public Integer swapInterval;
     /**
@@ -135,9 +126,9 @@ public class GLData {
      */
     public boolean pixelFormatFloat;
     /**
-     * Specify the behavior on context switch.
+     * Specify the behavior on context switch. Defaults to <code>null</code> for "not specified".
      */
-    public int contextReleaseBehavior;
+    public ReleaseBehavior contextReleaseBehavior;
     /**
      * The number of color samples per pixel. This is only valid when {@link #samples} is at least 1.
      */
