@@ -13,7 +13,6 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.swt.GLData.API;
 import org.lwjgl.opengles.GLES;
 import org.lwjgl.system.Configuration;
@@ -139,7 +138,7 @@ public class NvGLESDemo {
 					float aspect = (float) rect.width / rect.height;
 					glUniform1f(aspectLocation, aspect);
 					glUniform1f(rotLocation, rot);
-					glDrawElements(GL11.GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+					glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 					canvas.swapBuffers();
 					display.asyncExec(this);
