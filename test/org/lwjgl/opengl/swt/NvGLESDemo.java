@@ -1,9 +1,6 @@
 package org.lwjgl.opengl.swt;
 
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengles.GLES20.*;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -16,13 +13,11 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GLUtil;
 import org.lwjgl.opengl.swt.GLData.API;
+import org.lwjgl.opengles.GLES;
 import org.lwjgl.system.Configuration;
 import org.lwjgl.system.Platform;
-import org.lwjgl.system.libffi.Closure;
 
 /**
  * Shows how to use OpenGL ES with SWT.
@@ -35,9 +30,9 @@ public class NvGLESDemo {
 		final Shell shell = new Shell(display, SWT.SHELL_TRIM | SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE);
 		shell.setLayout(new FillLayout());
 		GLData data = new GLData();
+		data.api = API.GLES;
 		data.majorVersion = 2;
 		data.minorVersion = 0;
-		data.api = API.GLES;
 		data.samples = 4;
 		data.swapInterval = 1;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
@@ -52,8 +47,7 @@ public class NvGLESDemo {
 		    org.lwjgl.opengles.GLES.create(org.lwjgl.opengl.GL.getFunctionProvider()); // omg?!
 		}
 
-		GL.createCapabilities();
-		Closure debugProc = GLUtil.setupDebugMessageCallback();
+		GLES.createCapabilities();
 
 		final Rectangle rect = new Rectangle(0, 0, 0, 0);
 		canvas.addListener(SWT.Resize, new Listener() {
@@ -105,7 +99,6 @@ public class NvGLESDemo {
 		glCompileShader(fs);
 		glAttachShader(program, fs);
 		glBindAttribLocation(program, 0, "vertex");
-		glBindFragDataLocation(program, 0, "color");
 		glLinkProgram(program);
 		glUseProgram(program);
 		final int rotLocation = glGetUniformLocation(program, "rot");
@@ -114,7 +107,6 @@ public class NvGLESDemo {
 		// Create a simple quad
 		int vbo = glGenBuffers();
 		int ibo = glGenBuffers();
-		int vao = glGenVertexArrays();
 		float[] vertices = { 
 			-1, -1, 0,
 			 1, -1, 0,
@@ -125,7 +117,6 @@ public class NvGLESDemo {
 			0, 1, 2,
 			2, 3, 0
 		};
-		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, (FloatBuffer) BufferUtils.createFloatBuffer(vertices.length).put(vertices).flip(), GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
