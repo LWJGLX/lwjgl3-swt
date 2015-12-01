@@ -8,6 +8,8 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Display;
@@ -29,6 +31,13 @@ public class SharedContextsDemo {
         int minClientHeight = 300;
         final Display display = new Display();
         final Shell shell = new Shell(display, SWT.SHELL_TRIM);
+        shell.addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent e) {
+                if (e.stateMask == SWT.ALT && e.keyCode == 13) {
+                    shell.setFullScreen(!shell.getFullScreen());
+                }
+            }
+        });
         GridLayout layout = new GridLayout(2, false);
         shell.setLayout(layout);
         int dw = shell.getSize().x - shell.getClientArea().width;

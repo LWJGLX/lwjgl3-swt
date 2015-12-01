@@ -6,6 +6,8 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyEvent;
+import org.eclipse.swt.events.KeyAdapter;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Display;
@@ -28,6 +30,13 @@ public class NvGLESDemo {
 		final Display display = new Display();
 		final Shell shell = new Shell(display, SWT.SHELL_TRIM | SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE);
 		shell.setLayout(new FillLayout());
+		shell.addKeyListener(new KeyAdapter() {
+			public void keyPressed(KeyEvent e) {
+				if (e.stateMask == SWT.ALT && e.keyCode == 13) {
+					shell.setFullScreen(!shell.getFullScreen());
+				}
+			}
+		});
 		GLData data = new GLData();
 		data.api = API.GLES;
 		data.majorVersion = 2;
@@ -40,10 +49,10 @@ public class NvGLESDemo {
 		// Enable LWJGL3 to use GLES via GL library
 		// From: http://bedroomcoders.co.uk/gles2-0-everywhere-thanks-to-lwjgl3/
 		if (Platform.get() == Platform.WINDOWS ) {
-		    // pretend we're using GLES in windows, instead use a subset of OpenGL 2.0 as GLES 2.0
-		    Configuration.LIBRARY_NAME_OPENGLES.set("OpenGL32");
-		    Configuration.EXPLICIT_INIT_OPENGLES.set(true);
-		    org.lwjgl.opengles.GLES.create(org.lwjgl.opengl.GL.getFunctionProvider()); // omg?!
+			// pretend we're using GLES in windows, instead use a subset of OpenGL 2.0 as GLES 2.0
+			Configuration.LIBRARY_NAME_OPENGLES.set("OpenGL32");
+			Configuration.EXPLICIT_INIT_OPENGLES.set(true);
+			org.lwjgl.opengles.GLES.create(org.lwjgl.opengl.GL.getFunctionProvider()); // omg?!
 		}
 
 		GLES.createCapabilities();

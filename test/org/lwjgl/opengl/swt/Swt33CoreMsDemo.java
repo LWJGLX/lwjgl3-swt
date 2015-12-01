@@ -9,6 +9,8 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.KeyAdapter;
+import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Display;
@@ -35,6 +37,13 @@ public class Swt33CoreMsDemo {
 		final Display display = new Display();
 		final Shell shell = new Shell(display, SWT.SHELL_TRIM | SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE);
 		shell.setLayout(new FillLayout());
+		shell.addKeyListener(new KeyAdapter() {
+			public void keyPressed(KeyEvent e) {
+				if (e.stateMask == SWT.ALT && e.keyCode == 13) {
+					shell.setFullScreen(!shell.getFullScreen());
+				}
+			}
+		});
 		int dw = shell.getSize().x - shell.getClientArea().width;
 		int dh = shell.getSize().y - shell.getClientArea().height;
 		shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
