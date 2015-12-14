@@ -32,7 +32,7 @@ public class NvGLESDemo {
 		shell.setLayout(new FillLayout());
 		shell.addKeyListener(new KeyAdapter() {
 			public void keyPressed(KeyEvent e) {
-				if (e.stateMask == SWT.ALT && e.keyCode == 13) {
+				if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
 					shell.setFullScreen(!shell.getFullScreen());
 				}
 			}
