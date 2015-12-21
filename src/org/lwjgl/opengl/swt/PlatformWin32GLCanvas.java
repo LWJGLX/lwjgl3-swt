@@ -499,7 +499,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                     User32.ReleaseDC(windowHandle, hDC);
                     JNI.callPI(wgl.DeleteContext, dummyContext);
                     JNI.callPPI(wgl.MakeCurrent, currentDc, currentContext);
-                    throw new SWTException("Multisampling requested but WGL_ARB_multisample is unavailable");
+                    throw new SWTException("Multisampling requested but neither WGL_ARB_multisample nor WGL_EXT_multisample available");
                 }
                 if (attribs.colorSamplesNV > 0) {
                     boolean has_WGL_NV_multisample_coverage = wglExtensionsList.contains("WGL_NV_multisample_coverage");
@@ -820,7 +820,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         int maxBarriers = buffer.buffer().getInt(4);
         if (maxBarriers < attribs.swapBarrierNV) {
-            throw new SWTException("Swap barrier exceeds maximum group index");
+            throw new SWTException("Swap barrier exceeds maximum barrier index");
         }
         if (attribs.swapGroupNV > 0) {
             procEncoded = buffer.stringParamASCII("wglJoinSwapGroupNV", true);
