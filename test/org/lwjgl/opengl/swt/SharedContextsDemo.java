@@ -19,6 +19,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.system.Platform;
 
 /**
  * Showcases context sharing.
@@ -34,7 +35,12 @@ public class SharedContextsDemo {
         shell.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
-                    shell.setFullScreen(!shell.getFullScreen());
+                    if (Platform.get() == Platform.WINDOWS) {
+                        // Fix crappy/buggy fullscreen mode in SWT
+                        SwtHelperWin32.properFullscreen(shell);
+                    } else {
+                        shell.setFullScreen(!shell.getFullScreen());
+                    }
                 }
             }
         });

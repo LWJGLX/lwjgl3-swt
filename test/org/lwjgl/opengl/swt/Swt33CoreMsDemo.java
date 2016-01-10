@@ -21,6 +21,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.swt.GLData.Profile;
+import org.lwjgl.system.Platform;
 
 /**
  * SWT with OpenGL 3.3 core, multisampling and v-sync.
@@ -37,13 +38,18 @@ public class Swt33CoreMsDemo {
 		final Display display = new Display();
 		final Shell shell = new Shell(display, SWT.SHELL_TRIM | SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE);
 		shell.setLayout(new FillLayout());
-		shell.addKeyListener(new KeyAdapter() {
-			public void keyPressed(KeyEvent e) {
-				if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
-					shell.setFullScreen(!shell.getFullScreen());
-				}
-			}
-		});
+        shell.addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent e) {
+                if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
+                    if (Platform.get() == Platform.WINDOWS) {
+                        // Fix crappy/buggy fullscreen mode in SWT
+                        SwtHelperWin32.properFullscreen(shell);
+                    } else {
+                        shell.setFullScreen(!shell.getFullScreen());
+                    }
+                }
+            }
+        });
 		int dw = shell.getSize().x - shell.getClientArea().width;
 		int dh = shell.getSize().y - shell.getClientArea().height;
 		shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
