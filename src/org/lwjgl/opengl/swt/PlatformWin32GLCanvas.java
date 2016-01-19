@@ -89,10 +89,10 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
     }
 
     /**
-     * Validate the given {@link GLContextAttributes} and throw an exception on validation error.
+     * Validate the given {@link GLData} and throw an exception on validation error.
      * 
      * @param attribs
-     *            the {@link GLContextAttributes} to validate
+     *            the {@link GLData} to validate
      */
     public static void validateAttributes(GLData attribs) {
         if (attribs.alphaSize < 0) {
@@ -161,7 +161,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
     }
 
     /**
-     * Encode the pixel format attributes stored in the given {@link GLContextAttributes} into the given {@link IntBuffer} for wglChoosePixelFormatARB to
+     * Encode the pixel format attributes stored in the given {@link GLData} into the given {@link IntBuffer} for wglChoosePixelFormatARB to
      * consume.
      */
     private void encodePixelFormatAttribs(IntBuffer ib, GLData attribs) {

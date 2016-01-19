@@ -49,8 +49,9 @@ public class GLCanvas extends Canvas {
      * @param data the requested attributes of the GLCanvas
      *
      * @exception IllegalArgumentException
-     * <ul><li>ERROR_NULL_ARGUMENT when the data is null
-     *     <li>ERROR_UNSUPPORTED_DEPTH when the requested attributes cannot be provided</ul> 
+     * <ul>
+     * <li>ERROR_NULL_ARGUMENT when the data is null
+     * <li>ERROR_UNSUPPORTED_DEPTH when the requested attributes cannot be provided
      * </ul>
      */
     public GLCanvas(Composite parent, int style, GLData data) {
@@ -126,6 +127,8 @@ public class GLCanvas extends Canvas {
     /**
      * Blocks until <code>seconds</code> seconds before a synchronized swap would occur.
      * 
+     * @param seconds
+     *          the seconds to wait until a synchronized swap would occur
      * @return <code>true</code> if the implementation had to wait for the synchronized swap; <code>false</code> otherwise
      */
     public boolean delayBeforeSwapNV(float seconds) {
