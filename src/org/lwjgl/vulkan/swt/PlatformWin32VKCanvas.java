@@ -50,9 +50,6 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
         if (err != VK_SUCCESS) {
             throw new SWTException("Calling vkCreateWin32SurfaceKHR failed with error: " + err);
         }
-
-        // Query
-
         return surface;
     }
 
