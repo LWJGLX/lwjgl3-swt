@@ -10,4 +10,6 @@ public interface PlatformVKCanvas {
 
     long create(Composite composite, VKData data);
 
+    boolean getPhysicalDevicePresentationSupport(long instance, long physicalDevice, int queueFamily);
+
 }

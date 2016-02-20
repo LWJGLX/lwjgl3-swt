@@ -59,4 +59,20 @@ public class VKCanvas extends Canvas {
         surface = platformCanvas.create(this, data);
     }
 
+    /**
+     * Determine whether there is presentation support for the given VkInstance and VkPhysicalDevice in a command queue of the specified
+     * <code>queueFamiliy</code>.
+     * 
+     * @param instance
+     *            the Vulkan VkInstance handle
+     * @param physicalDevice
+     *            the Vulkan VkPhysicalDevice handle
+     * @param queueFamily
+     *            the command queue family
+     * @return <code>true</code> of <code>false</code>
+     */
+    public boolean getPhysicalDevicePresentationSupport(long instance, long physicalDevice, int queueFamily) {
+        return platformCanvas.getPhysicalDevicePresentationSupport(instance, physicalDevice, queueFamily);
+    }
+
 }

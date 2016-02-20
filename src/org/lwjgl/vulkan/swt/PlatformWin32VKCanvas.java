@@ -9,7 +9,6 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.internal.win32.OS;
 import org.eclipse.swt.widgets.Composite;
 import org.lwjgl.PointerBuffer;
-
 import org.lwjgl.vulkan.VkWin32SurfaceCreateInfoKHR;
 
 public class PlatformWin32VKCanvas implements PlatformVKCanvas {
@@ -51,7 +50,18 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
         if (err != VK_SUCCESS) {
             throw new SWTException("Calling vkCreateWin32SurfaceKHR failed with error: " + err);
         }
+
+        // Query
+
         return surface;
+    }
+
+    public boolean getPhysicalDevicePresentationSupport(long instance, long physicalDevice, int queueFamily) {
+        long vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr = vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
+        if (vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr == 0L) {
+            throw new SWTException("vkGetPhysicalDeviceWin32PresentationSupportKHR unavailable for VkInstance [" + instance + "]");
+        }
+        return invokePII(vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr, physicalDevice, queueFamily) == 1;
     }
 
 }
