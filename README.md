@@ -48,9 +48,23 @@ data.samples = 4; // 4x multisampling
 data.swapInterval = 1; // for enabling v-sync (swapbuffers sync'ed to monitor refresh)
 GLCanvas canvas = new GLCanvas(shell, 0, data);
 ```
+
+## Vulkan support
+
+Much like with the GLCanvas/GLData for OpenGL there is now also first exprimental Win32 support for Vulkan:
+```Java
+Display display = new Display();
+Shell shell = new Shell(display);
+shell.setLayout(new FillLayout());
+VKData data = new VKData();
+data.instance = instance; // <- the VkInstance created outside via LWJGL 3
+VKCanvas canvas = new VKCanvas(shell, 0, data);
+```
+
 ## What is planned for the future?
 
 Support for:
+- Vulkan
 - Linux and OS X
 - associating rendering contexts with specific GPUs on Nvidia and AMD
 - pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)
