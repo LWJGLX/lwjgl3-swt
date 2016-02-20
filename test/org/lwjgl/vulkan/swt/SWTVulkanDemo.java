@@ -31,6 +31,12 @@ import org.lwjgl.vulkan.VkInstanceCreateInfo;
  * @author Kai Burjack
  */
 public class SWTVulkanDemo {
+
+    /**
+     * Create a Vulkan instance using LWJGL 3.
+     * 
+     * @return the VkInstance handle
+     */
     private static long createInstance() {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc();
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);

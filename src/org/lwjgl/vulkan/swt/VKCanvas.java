@@ -5,6 +5,11 @@ import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.lwjgl.system.Platform;
 
+/**
+ * A SWT {@link Canvas} that supports to be drawn on using Vulkan.
+ * 
+ * @author Kai Burjack
+ */
 public class VKCanvas extends Canvas {
     private static PlatformVKCanvas platformCanvas;
     static {
@@ -35,17 +40,14 @@ public class VKCanvas extends Canvas {
     public long surface;
 
     /**
-     * Create a VKCanvas widget using the attributes described in the VKData object provided.
+     * Create a {@link VKCanvas} widget using the attributes described in the supplied {@link VKData} object.
      *
-     * @param parent a composite widget
-     * @param style the bitwise OR'ing of widget styles
-     * @param data the requested attributes of the VKCanvas
-     *
-     * @exception IllegalArgumentException
-     * <ul>
-     * <li>ERROR_NULL_ARGUMENT when the data is null
-     * <li>ERROR_UNSUPPORTED_DEPTH when the requested attributes cannot be provided
-     * </ul>
+     * @param parent
+     *            a parent composite widget
+     * @param style
+     *            the bitwise OR'ing of widget styles
+     * @param data
+     *            the necessary data to create a VKCanvas
      */
     public VKCanvas(Composite parent, int style, VKData data) {
         super(parent, platformCanvas.checkStyle(parent, style));
