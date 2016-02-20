@@ -59,6 +59,7 @@ shell.setLayout(new FillLayout());
 VKData data = new VKData();
 data.instance = instance; // <- the VkInstance created outside via LWJGL 3
 VKCanvas canvas = new VKCanvas(shell, 0, data);
+long surface = canvas.surface;
 ```
 
 ## What is planned for the future?
