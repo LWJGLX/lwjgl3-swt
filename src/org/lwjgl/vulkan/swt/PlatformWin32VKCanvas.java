@@ -45,11 +45,13 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
 
         PointerBuffer pSurface = memAllocPointer(1);
         int err = callPPPPI(vkCreateWin32SurfaceKHR, data.instance, sci.address(), 0L, pSurface.address0());
+        long surface = pSurface.get(0);
+        memFree(pSurface);
+        sci.free();
         if (err != VK_SUCCESS) {
             throw new SWTException("Calling vkCreateWin32SurfaceKHR failed with error: " + err);
         }
-
-        return pSurface.get(0);
+        return surface;
     }
 
 }
