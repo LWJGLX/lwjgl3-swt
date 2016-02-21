@@ -1,6 +1,7 @@
 package org.lwjgl.vulkan.swt;
 
 import org.eclipse.swt.widgets.Composite;
+import org.lwjgl.vulkan.VkPhysicalDevice;
 
 public interface PlatformVKCanvas {
 
@@ -10,6 +11,6 @@ public interface PlatformVKCanvas {
 
     long create(Composite composite, VKData data);
 
-    boolean getPhysicalDevicePresentationSupport(long instance, long physicalDevice, int queueFamily);
+    boolean getPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, int queueFamily);
 
 }

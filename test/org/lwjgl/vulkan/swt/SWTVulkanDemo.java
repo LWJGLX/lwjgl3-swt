@@ -23,6 +23,7 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.system.Platform;
 import org.lwjgl.vulkan.VkApplicationInfo;
+import org.lwjgl.vulkan.VkInstance;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
 
 /**
@@ -37,7 +38,7 @@ public class SWTVulkanDemo {
      * 
      * @return the VkInstance handle
      */
-    private static long createInstance() {
+    private static VkInstance createInstance() {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc();
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         appInfo.pApplicationName("SWT Vulkan Demo");
@@ -72,12 +73,12 @@ public class SWTVulkanDemo {
         memFree(VK_KHR_SURFACE_EXTENSION);
         memFree(ppEnabledExtensionNames);
         appInfo.free();
-        return instance;
+        return new VkInstance(instance);
     }
 
     public static void main(String[] args) {
         // Create the Vulkan instance
-        long instance = createInstance();
+        VkInstance instance = createInstance();
 
         // Create SWT Display, Shell and VKCanvas
         final Display display = new Display();

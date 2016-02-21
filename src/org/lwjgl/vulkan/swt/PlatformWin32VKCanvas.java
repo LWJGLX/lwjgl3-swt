@@ -1,14 +1,15 @@
 package org.lwjgl.vulkan.swt;
 
-import static org.lwjgl.system.JNI.*;
-import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.KHRWin32Surface.*;
+import static org.lwjgl.vulkan.VK10.*;
+
+import java.nio.LongBuffer;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.internal.win32.OS;
 import org.eclipse.swt.widgets.Composite;
-import org.lwjgl.PointerBuffer;
+import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkWin32SurfaceCreateInfoKHR;
 
 public class PlatformWin32VKCanvas implements PlatformVKCanvas {
@@ -31,19 +32,13 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
 
     @Override
     public long create(Composite composite, VKData data) {
-        // Obtain vkCreateWin32SurfaceKHR function pointer
-        long vkCreateWin32SurfaceKHR = vkGetInstanceProcAddr(data.instance, "vkCreateWin32SurfaceKHR");
-        if (vkCreateWin32SurfaceKHR == 0L) {
-            throw new SWTException("vkCreateWin32SurfaceKHR unavailable for VkInstance: " + data.instance);
-        }
-
         VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.calloc();
         sci.sType(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
         sci.hinstance(OS.GetModuleHandle(null));
         sci.hwnd(composite.handle);
 
-        PointerBuffer pSurface = memAllocPointer(1);
-        int err = callPPPPI(vkCreateWin32SurfaceKHR, data.instance, sci.address(), 0L, pSurface.address0());
+        LongBuffer pSurface = memAllocLong(1);
+        int err = vkCreateWin32SurfaceKHR(data.instance, sci, null, pSurface);
         long surface = pSurface.get(0);
         memFree(pSurface);
         sci.free();
@@ -53,12 +48,8 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
         return surface;
     }
 
-    public boolean getPhysicalDevicePresentationSupport(long instance, long physicalDevice, int queueFamily) {
-        long vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr = vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
-        if (vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr == 0L) {
-            throw new SWTException("vkGetPhysicalDeviceWin32PresentationSupportKHR unavailable for VkInstance [" + instance + "]");
-        }
-        return invokePII(vkGetPhysicalDeviceWin32PresentationSupportKHR_Addr, physicalDevice, queueFamily) == 1;
+    public boolean getPhysicalDevicePresentationSupport(VkPhysicalDevice physicalDevice, int queueFamily) {
+        return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamily) == 1;
     }
 
 }

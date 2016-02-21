@@ -1,5 +1,7 @@
 package org.lwjgl.vulkan.swt;
 
+import org.lwjgl.vulkan.VkInstance;
+
 /**
  * Contains information to create a {@link VKCanvas}.
  * 
@@ -8,8 +10,8 @@ package org.lwjgl.vulkan.swt;
 public class VKData {
 
     /**
-     * The Vulkan instance handle on behalf of which to create a window surface.
+     * The {@link VkInstance} on behalf of which to create a window surface.
      */
-    public long instance;
+    public VkInstance instance;
 
 }
