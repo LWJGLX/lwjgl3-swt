@@ -959,8 +959,6 @@ public class SWTVulkanCompleteDemo {
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to wait for idle queue: " + VkUtil.translateVulkanError(err));
             }
-            
-            System.gc();
         }
         memFree(pSwapchains);
         memFree(pCommandBuffers);
