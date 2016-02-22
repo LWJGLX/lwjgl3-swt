@@ -63,7 +63,7 @@ import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkViewport;
 
 /**
- * Shows how to create a simple Vulkan instance and a {@link VKCanvas}.
+ * Renders a simple cornflower blue image on an SWT Canvas with Vulkan.
  * 
  * @author Kai Burjack
  */
