@@ -392,7 +392,7 @@ public class SWTVulkanCompleteDemo {
         int destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
         // Put barrier inside setup command buffer
-        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, 0, 0, null, 0, null, 1, imageMemoryBarrier);
+        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE, null, null, imageMemoryBarrier);
 
         imageMemoryBarrier.free();
     }
@@ -512,7 +512,7 @@ public class SWTVulkanCompleteDemo {
         LongBuffer pBufferView = memAllocLong(1);
         VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc();
         colorAttachmentView.sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
-        colorAttachmentView.pNext(0L);
+        colorAttachmentView.pNext(NULL);
         colorAttachmentView.format(colorFormat);
         VkComponentMapping components = colorAttachmentView.components();
         components.r(VK_COMPONENT_SWIZZLE_R);
@@ -526,7 +526,7 @@ public class SWTVulkanCompleteDemo {
         subresourceRange.baseArrayLayer(0);
         subresourceRange.layerCount(1);
         colorAttachmentView.viewType(VK_IMAGE_VIEW_TYPE_2D);
-        colorAttachmentView.flags(0);
+        colorAttachmentView.flags(VK_FLAGS_NONE);
         for (int i = 0; i < imageCount; i++) {
             images[i] = pSwapchainImages.get(i);
             // Bring the image from an UNDEFINED state to the PRESENT_SRC state
@@ -566,7 +566,7 @@ public class SWTVulkanCompleteDemo {
 
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1);
         subpass.pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
-        subpass.flags(0);
+        subpass.flags(VK_FLAGS_NONE);
         subpass.inputAttachmentCount(0);
         subpass.pInputAttachments(null);
         subpass.colorAttachmentCount(1);
@@ -578,7 +578,7 @@ public class SWTVulkanCompleteDemo {
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc();
         renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
-        renderPassInfo.pNext(0L);
+        renderPassInfo.pNext(NULL);
         renderPassInfo.attachmentCount(1);
         renderPassInfo.pAttachments(attachments);
         renderPassInfo.subpassCount(1);
@@ -605,7 +605,7 @@ public class SWTVulkanCompleteDemo {
         fci.attachmentCount(1);
         LongBuffer attachments = memAllocLong(1);
         fci.pAttachments(attachments);
-        fci.flags(0);
+        fci.flags(VK_FLAGS_NONE);
         fci.height(height);
         fci.width(width);
         fci.layers(1);
@@ -629,7 +629,7 @@ public class SWTVulkanCompleteDemo {
     }
 
     private static void submitCommandBuffer(VkQueue queue, VkCommandBuffer commandBuffer) {
-        if (commandBuffer == null || commandBuffer.address() == 0L)
+        if (commandBuffer == null || commandBuffer.address() == NULL)
             return;
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
         submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
@@ -670,7 +670,7 @@ public class SWTVulkanCompleteDemo {
         cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
         cmdBufInfo.pNext(NULL);
 
-        // Specify clear color
+        // Specify clear color (cornflower blue)
         VkClearValue.Buffer clearValues = VkClearValue.calloc(1);
         VkClearColorValue clearColor = clearValues.color();
         clearColor.float32(0, 0.1f);
@@ -710,7 +710,7 @@ public class SWTVulkanCompleteDemo {
             viewport.width(width);
             viewport.minDepth(0.0f);
             viewport.maxDepth(1.0f);
-            vkCmdSetViewport(renderCommandBuffers[i], 0, 1, viewport);
+            vkCmdSetViewport(renderCommandBuffers[i], 0, viewport);
             viewport.free();
 
             // Update dynamic scissor state
@@ -721,7 +721,7 @@ public class SWTVulkanCompleteDemo {
             scissorExtent.height(height);
             scissorOffset.x(0);
             scissorOffset.y(0);
-            vkCmdSetScissor(renderCommandBuffers[i], 0, 1, scissor);
+            vkCmdSetScissor(renderCommandBuffers[i], 0, scissor);
             scissor.free();
 
             vkCmdEndRenderPass(renderCommandBuffers[i]);
@@ -805,7 +805,7 @@ public class SWTVulkanCompleteDemo {
             commandBuffer,
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            0,
+            VK_FLAGS_NONE,
             null, // No memory barriers,
             null, // No buffer barriers,
             postPresentBarrier); // one image barrier
@@ -854,6 +854,8 @@ public class SWTVulkanCompleteDemo {
         data.instance = instance; // <- set Vulkan instance
         final VKCanvas canvas = new VKCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         final long surface = canvas.surface;
+
+        // Create static Vulkan resources
         final ColorFormatAndSpace colorFormatAndSpace = getColorFormatAndSpace(physicalDevice, surface);
         final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long commandPool = createCommandPool(device, queueFamilyIndex);
@@ -861,14 +863,15 @@ public class SWTVulkanCompleteDemo {
         final VkCommandBuffer commandBuffer = createCommandBuffer(device, commandPool);
         final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
+
+        // Handle canvas resize
         canvas.addControlListener(new ControlAdapter() {
             public void controlResized(ControlEvent e) {
                 super.controlResized(e);
                 int width = canvas.getSize().x;
                 int height = canvas.getSize().y;
 
-                vkQueueWaitIdle(queue);
-                long oldChain = swapchain != null ? swapchain.swapchainHandle : 0L;
+                long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
                 swapchain = createSwapChain(device, physicalDevice, surface, oldChain, commandBuffer,
                         canvas.getSize().x, canvas.getSize().y, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
                 if (framebuffers != null) {
@@ -878,7 +881,7 @@ public class SWTVulkanCompleteDemo {
                 framebuffers = createFramebuffers(device, swapchain, clearRenderPass, canvas.getSize().x, canvas.getSize().y);
                 // Create render command buffers
                 if (renderCommandBuffers != null) {
-                    vkResetCommandPool(device, renderCommandPool, 0);
+                    vkResetCommandPool(device, renderCommandPool, VK_FLAGS_NONE);
                 }
                 renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, clearRenderPass, width, height);
             }
@@ -912,7 +915,7 @@ public class SWTVulkanCompleteDemo {
             }
 
             // Get next image in the swap chain (back/front buffer)
-            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, presentCompleteSemaphore, 0L, pImageIndex);
+            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, presentCompleteSemaphore, VK_NULL_HANDLE, pImageIndex);
             currentBuffer = pImageIndex.get(0);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanError(err));
