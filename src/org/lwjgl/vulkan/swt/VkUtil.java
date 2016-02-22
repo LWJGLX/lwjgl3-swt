@@ -11,6 +11,11 @@ import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
 
 public class VkUtil {
 
+    /**
+     * Remove if added to spec.
+     */
+    public static final int VK_FLAGS_NONE = 0;
+
     public static int VK_MAKE_VERSION(int major, int minor, int patch) {
         return (major << 22) | (minor << 12) | (patch << 0);
     }
@@ -20,7 +25,7 @@ public class VkUtil {
      * <p>
      * See: <a href="https://github.com/glfw/glfw/blob/master/src/vulkan.c#L133">vulkan.c</a>
      */
-    public static String translateError(int succ) {
+    public static String translateVulkanError(int succ) {
         switch (succ) {
         case VK_SUCCESS:
             return "Success";
@@ -66,8 +71,12 @@ public class VkUtil {
             return "The display used by a swapchain does not use the same presentable image layout";
         case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
             return "The requested window is already connected to a VkSurfaceKHR, or to some other non-Vulkan API";
-            // case VK_ERROR_VALIDATION_FAILED_EXT:
-            // return "A validation layer found an error";
+        case -1000011001: // VK_ERROR_VALIDATION_FAILED_EXT
+            return "A validation layer found an error";
+        /* Vendor-specific error codes */
+        // Nvidia
+        case -1000013000: // Some illegal arguments passed to function (happened with vkCreateSwapchainKHR when old swapchain was wrong)
+            return "Invalid/wrong arguments specified to call";
         default:
             return "ERROR: UNKNOWN VULKAN ERROR [" + succ + "]";
         }

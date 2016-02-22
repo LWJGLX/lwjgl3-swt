@@ -9,6 +9,8 @@ import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_APPLICATION_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 import static org.lwjgl.vulkan.VK10.vkCreateInstance;
+import static org.lwjgl.vulkan.swt.VkUtil.VK_MAKE_VERSION;
+import static org.lwjgl.vulkan.swt.VkUtil.translateVulkanError;
 
 import java.nio.ByteBuffer;
 
@@ -31,7 +33,7 @@ import org.lwjgl.vulkan.VkInstanceCreateInfo;
  * 
  * @author Kai Burjack
  */
-public class SWTVulkanDemo {
+public class SWTVulkanSimpleDemo {
 
     /**
      * Create a Vulkan instance using LWJGL 3.
@@ -43,7 +45,7 @@ public class SWTVulkanDemo {
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         appInfo.pApplicationName("SWT Vulkan Demo");
         appInfo.pEngineName("");
-        appInfo.apiVersion(VkUtil.VK_MAKE_VERSION(1, 0, 3));
+        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 3));
         PointerBuffer ppEnabledExtensionNames = MemoryUtil.memAllocPointer(2);
         ByteBuffer VK_KHR_SURFACE_EXTENSION;
         if (Platform.get() == Platform.WINDOWS)
@@ -64,7 +66,7 @@ public class SWTVulkanDemo {
         PointerBuffer pInstance = MemoryUtil.memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         if (err != VK_SUCCESS) {
-            throw new RuntimeException("Failed to create VkInstance: " + VkUtil.translateError(err));
+            throw new RuntimeException("Failed to create VkInstance: " + translateVulkanError(err));
         }
         long instance = pInstance.get(0);
         memFree(pInstance);

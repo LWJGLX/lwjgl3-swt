@@ -1,0 +1,976 @@
+package org.lwjgl.vulkan.swt;
+
+import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.vulkan.EXTDebugReport.*;
+import static org.lwjgl.vulkan.KHRSwapchain.*;
+import static org.lwjgl.vulkan.KHRWin32Surface.*;
+import static org.lwjgl.vulkan.KHRXlibSurface.*;
+import static org.lwjgl.vulkan.KHRSurface.*;
+import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.swt.VkUtil.*;
+
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
+
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Shell;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.MemoryUtil.BufferAllocator;
+import org.lwjgl.system.Platform;
+import org.lwjgl.vulkan.VkApplicationInfo;
+import org.lwjgl.vulkan.VkAttachmentDescription;
+import org.lwjgl.vulkan.VkAttachmentReference;
+import org.lwjgl.vulkan.VkClearColorValue;
+import org.lwjgl.vulkan.VkClearValue;
+import org.lwjgl.vulkan.VkCommandBuffer;
+import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
+import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
+import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
+import org.lwjgl.vulkan.VkComponentMapping;
+import org.lwjgl.vulkan.VkDevice;
+import org.lwjgl.vulkan.VkDeviceCreateInfo;
+import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
+import org.lwjgl.vulkan.VkExtent2D;
+import org.lwjgl.vulkan.VkFramebufferCreateInfo;
+import org.lwjgl.vulkan.VkImageMemoryBarrier;
+import org.lwjgl.vulkan.VkImageSubresourceRange;
+import org.lwjgl.vulkan.VkImageViewCreateInfo;
+import org.lwjgl.vulkan.VkInstance;
+import org.lwjgl.vulkan.VkInstanceCreateInfo;
+import org.lwjgl.vulkan.VkOffset2D;
+import org.lwjgl.vulkan.VkPhysicalDevice;
+import org.lwjgl.vulkan.VkPresentInfoKHR;
+import org.lwjgl.vulkan.VkQueue;
+import org.lwjgl.vulkan.VkQueueFamilyProperties;
+import org.lwjgl.vulkan.VkRect2D;
+import org.lwjgl.vulkan.VkRenderPassBeginInfo;
+import org.lwjgl.vulkan.VkRenderPassCreateInfo;
+import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
+import org.lwjgl.vulkan.VkSubmitInfo;
+import org.lwjgl.vulkan.VkSubpassDescription;
+import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR;
+import org.lwjgl.vulkan.VkSurfaceFormatKHR;
+import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
+import org.lwjgl.vulkan.VkViewport;
+
+/**
+ * Shows how to create a simple Vulkan instance and a {@link VKCanvas}.
+ * 
+ * @author Kai Burjack
+ */
+public class SWTVulkanCompleteDemo {
+
+    /**
+     * Create a Vulkan instance using LWJGL 3.
+     * 
+     * @return the VkInstance handle
+     */
+    private static VkInstance createInstance() {
+        VkApplicationInfo appInfo = VkApplicationInfo.calloc();
+        appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
+        appInfo.pApplicationName("SWT Vulkan Demo");
+        appInfo.pEngineName("");
+        appInfo.apiVersion(VkUtil.VK_MAKE_VERSION(1, 0, 3));
+        PointerBuffer ppEnabledExtensionNames = MemoryUtil.memAllocPointer(2);
+        ByteBuffer VK_KHR_SURFACE_EXTENSION;
+        if (Platform.get() == Platform.WINDOWS)
+            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        else
+            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
+        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
+        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
+        pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
+        pCreateInfo.pNext(NULL);
+        pCreateInfo.pApplicationInfo(appInfo);
+        if (ppEnabledExtensionNames.position() > 0) {
+            pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.position());
+            pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames.flip());
+        }
+        PointerBuffer pInstance = MemoryUtil.memAllocPointer(1);
+        int err = vkCreateInstance(pCreateInfo, null, pInstance);
+        long instance = pInstance.get(0);
+        memFree(pInstance);
+        pCreateInfo.free();
+        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
+        memFree(VK_KHR_SURFACE_EXTENSION);
+        memFree(ppEnabledExtensionNames);
+        appInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create VkInstance: " + VkUtil.translateVulkanError(err));
+        }
+        return new VkInstance(instance);
+    }
+
+    private static VkPhysicalDevice getFirstPhysicalDevice(VkInstance instance) {
+        IntBuffer pPhysicalDeviceCount = memAllocInt(1);
+        int err = vkEnumeratePhysicalDevices(instance, pPhysicalDeviceCount, null);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get number of physicsl devices: " + VkUtil.translateVulkanError(err));
+        }
+        PointerBuffer pPhysicalDevices = memAllocPointer(pPhysicalDeviceCount.get(0));
+        err = vkEnumeratePhysicalDevices(instance, pPhysicalDeviceCount, pPhysicalDevices);
+        long physicalDevice = pPhysicalDevices.get(0);
+        memFree(pPhysicalDeviceCount);
+        memFree(pPhysicalDevices);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get physicsl devices: " + VkUtil.translateVulkanError(err));
+        }
+        return new VkPhysicalDevice(physicalDevice, instance);
+    }
+
+    static class DeviceAndGraphicsQueueFamily {
+        VkDevice device;
+        int queueFamilyIndex;
+    }
+
+    private static DeviceAndGraphicsQueueFamily createDeviceAndGetGraphicsQueueFamily(VkPhysicalDevice physicalDevice) {
+        IntBuffer pQueueFamilyPropertyCount = memAllocInt(1);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, null);
+        int queueCount = pQueueFamilyPropertyCount.get(0);
+        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.malloc(queueCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, queueProps);
+        memFree(pQueueFamilyPropertyCount);
+        int graphicsQueueFamilyIndex;
+        for (graphicsQueueFamilyIndex = 0; graphicsQueueFamilyIndex < queueCount; graphicsQueueFamilyIndex++) {
+            if ((queueProps.get(graphicsQueueFamilyIndex).queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0)
+                break;
+        }
+        queueProps.free();
+        FloatBuffer pQueuePriorities = memAllocFloat(1).put(0.0f);
+        pQueuePriorities.flip();
+        VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1);
+        queueCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+        queueCreateInfo.queueFamilyIndex(graphicsQueueFamilyIndex);
+        queueCreateInfo.queueCount(1);
+        queueCreateInfo.pQueuePriorities(pQueuePriorities);
+
+        PointerBuffer extensions = MemoryUtil.memAllocPointer(2);
+        ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
+        extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
+        extensions.flip();
+
+        VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc();
+        deviceCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+        deviceCreateInfo.pNext(NULL);
+        deviceCreateInfo.queueCreateInfoCount(1);
+        deviceCreateInfo.pQueueCreateInfos(queueCreateInfo);
+        deviceCreateInfo.enabledExtensionCount(1);
+        deviceCreateInfo.ppEnabledExtensionNames(extensions);
+
+        PointerBuffer pDevice = memAllocPointer(1);
+        int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
+        long device = pDevice.get(0);
+        memFree(pDevice);
+        queueCreateInfo.free();
+        deviceCreateInfo.free();
+        memFree(extensions);
+        memFree(pQueuePriorities);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create device: " + VkUtil.translateVulkanError(err));
+        }
+        DeviceAndGraphicsQueueFamily ret = new DeviceAndGraphicsQueueFamily();
+        ret.device = new VkDevice(device, physicalDevice);
+        ret.queueFamilyIndex = graphicsQueueFamilyIndex;
+        return ret;
+    }
+
+    static class ColorFormatAndSpace {
+        int colorFormat;
+        int colorSpace;
+    }
+
+    private static ColorFormatAndSpace getColorFormatAndSpace(VkPhysicalDevice physicalDevice, long surface) {
+        IntBuffer pQueueFamilyPropertyCount = memAllocInt(1);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, null);
+        int queueCount = pQueueFamilyPropertyCount.get(0);
+        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.malloc(queueCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, queueProps);
+
+        // Iterate over each queue to learn whether it supports presenting:
+        IntBuffer supportsPresent = memAllocInt(queueCount);
+        for (int i = 0; i < queueCount; i++) {
+            supportsPresent.position(i * 4);
+            int err = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, supportsPresent);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to physical device surface support: " + VkUtil.translateVulkanError(err));
+            }
+        }
+
+        // Search for a graphics and a present queue in the array of queue families, try to find one that supports both
+        int graphicsQueueNodeIndex = Integer.MAX_VALUE;
+        int presentQueueNodeIndex = Integer.MAX_VALUE;
+        for (int i = 0; i < queueCount; i++) {
+            if ((queueProps.get(i).queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0) {
+                if (graphicsQueueNodeIndex == Integer.MAX_VALUE) {
+                    graphicsQueueNodeIndex = i;
+                }
+                if (supportsPresent.get(i) == VK_TRUE) {
+                    graphicsQueueNodeIndex = i;
+                    presentQueueNodeIndex = i;
+                    break;
+                }
+            }
+        }
+        if (presentQueueNodeIndex == Integer.MAX_VALUE) {
+            // If there's no queue that supports both present and graphics try to find a separate present queue
+            for (int i = 0; i < queueCount; ++i) {
+                if (supportsPresent.get(i) == VK_TRUE) {
+                    presentQueueNodeIndex = i;
+                    break;
+                }
+            }
+        }
+        memFree(supportsPresent);
+
+        // Generate error if could not find both a graphics and a present queue
+        if (graphicsQueueNodeIndex == Integer.MAX_VALUE) {
+            throw new AssertionError("No graphics queue found");
+        }
+        if (presentQueueNodeIndex == Integer.MAX_VALUE) {
+            throw new AssertionError("No presentation queue found");
+        }
+        if (graphicsQueueNodeIndex != presentQueueNodeIndex) {
+            throw new AssertionError("Presentation queue != graphics queue");
+        }
+
+        // Get list of supported formats
+        IntBuffer pFormatCount = memAllocInt(1);
+        int err = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pFormatCount, null);
+        int formatCount = pFormatCount.get(0);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to query number of physical device surface formats: " + VkUtil.translateVulkanError(err));
+        }
+
+        VkSurfaceFormatKHR.Buffer surfFormats = VkSurfaceFormatKHR.calloc(formatCount);
+        err = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pFormatCount, surfFormats);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to query physical device surface formats: " + VkUtil.translateVulkanError(err));
+        }
+
+        // If the format list includes just one entry of VK_FORMAT_UNDEFINED, the surface has no preferred format. Otherwise, at least one supported format will
+        // be returned.
+        int colorFormat;
+        if (formatCount == 1 && surfFormats.get(0).format() == VK_FORMAT_UNDEFINED) {
+            colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
+        } else {
+            colorFormat = surfFormats.get(0).format();
+        }
+        int colorSpace = surfFormats.get(0).colorSpace();
+
+        ColorFormatAndSpace ret = new ColorFormatAndSpace();
+        ret.colorFormat = colorFormat;
+        ret.colorSpace = colorSpace;
+        return ret;
+    }
+
+    private static long createCommandPool(VkDevice device, int queueNodeIndex) {
+        VkCommandPoolCreateInfo cmdPoolInfo = VkCommandPoolCreateInfo.calloc();
+        cmdPoolInfo.sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
+        cmdPoolInfo.queueFamilyIndex(queueNodeIndex);
+        cmdPoolInfo.flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        LongBuffer pCmdPool = memAllocLong(1);
+        int err = vkCreateCommandPool(device, cmdPoolInfo, null, pCmdPool);
+        long commandPool = pCmdPool.get(0);
+        cmdPoolInfo.free();
+        memFree(pCmdPool);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create command pool: " + VkUtil.translateVulkanError(err));
+        }
+        return commandPool;
+    }
+
+    private static VkQueue createDeviceQueue(VkDevice device, int queueFamilyIndex) {
+        PointerBuffer pQueue = memAllocPointer(1);
+        vkGetDeviceQueue(device, queueFamilyIndex, 0, pQueue);
+        long queue = pQueue.get(0);
+        memFree(pQueue);
+        return new VkQueue(queue, device);
+    }
+
+    private static VkCommandBuffer createCommandBuffer(VkDevice device, long commandPool) {
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc();
+        cmdBufAllocateInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+        cmdBufAllocateInfo.commandPool(commandPool);
+        cmdBufAllocateInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        cmdBufAllocateInfo.commandBufferCount(1);
+        PointerBuffer pCommandBuffer = memAllocPointer(1);
+        int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to allocate command buffer: " + VkUtil.translateVulkanError(err));
+        }
+        VkCommandBuffer commandBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
+        cmdBufAllocateInfo.free();
+        memFree(pCommandBuffer);
+        return commandBuffer;
+    }
+
+    private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int newImageLayout) {
+        // Create an image barrier object
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.malloc(1);
+        imageMemoryBarrier.oldLayout(oldImageLayout);
+        imageMemoryBarrier.newLayout(newImageLayout);
+        imageMemoryBarrier.image(image);
+        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
+        subresourceRange.aspectMask(aspectMask);
+        subresourceRange.baseMipLevel(0);
+        subresourceRange.levelCount(1);
+        subresourceRange.layerCount(1);
+
+        // Source layouts (old)
+
+        // Undefined layout
+        // Only allowed as initial layout!
+        // Make sure any writes to the image have been finished
+        if (oldImageLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+        }
+
+        // Old layout is color attachment
+        // Make sure any writes to the color buffer have been finished
+        if (oldImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        }
+
+        // Old layout is transfer source
+        // Make sure any reads from the image have been finished
+        if (oldImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
+        }
+
+        // Old layout is shader read (sampler, input attachment)
+        // Make sure any shader reads from the image have been finished
+        if (oldImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        }
+
+        // Target layouts (new)
+
+        // New layout is transfer destination (copy, blit)
+        // Make sure any copyies to the image have been finished
+        if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            imageMemoryBarrier.dstAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT);
+        }
+
+        // New layout is transfer source (copy, blit)
+        // Make sure any reads from and writes to the image have been finished
+        if (newImageLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+            imageMemoryBarrier.srcAccessMask(imageMemoryBarrier.srcAccessMask() | VK_ACCESS_TRANSFER_READ_BIT);
+            imageMemoryBarrier.dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
+        }
+
+        // New layout is color attachment
+        // Make sure any writes to the color buffer hav been finished
+        if (newImageLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            imageMemoryBarrier.dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_TRANSFER_READ_BIT);
+        }
+
+        // New layout is depth attachment
+        // Make sure any writes to depth/stencil buffer have been finished
+        if (newImageLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            imageMemoryBarrier.dstAccessMask(imageMemoryBarrier.dstAccessMask() | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        }
+
+        // New layout is shader read (sampler, input attachment)
+        // Make sure any writes to the image have been finished
+        if (newImageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+            imageMemoryBarrier.dstAccessMask(VK_ACCESS_SHADER_READ_BIT);
+        }
+
+        // Put barrier on top
+        int srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        int destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+        // Put barrier inside setup command buffer
+        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, 0, 0, null, 0, null, 1, imageMemoryBarrier);
+
+        imageMemoryBarrier.free();
+    }
+
+    static class Swapchain {
+        long swapchainHandle;
+        long[] images;
+        long[] imageViews;
+    }
+
+    private static Swapchain createSwapChain(VkDevice device, VkPhysicalDevice physicalDevice, long surface, long oldSwapChain, VkCommandBuffer commandBuffer, int width,
+            int height, int colorFormat, int colorSpace) {
+        int err;
+        // Get physical device surface properties and formats
+        VkSurfaceCapabilitiesKHR surfCaps = VkSurfaceCapabilitiesKHR.calloc();
+        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, surfCaps);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get physical device surface capabilities: " + VkUtil.translateVulkanError(err));
+        }
+
+        IntBuffer pPresentModeCount = memAllocInt(1);
+        err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, null);
+        int presentModeCount = pPresentModeCount.get(0);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get number of physical device surface presentation modes: " + VkUtil.translateVulkanError(err));
+        }
+
+        IntBuffer pPresentModes = memAllocInt(presentModeCount);
+        err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+        memFree(pPresentModeCount);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get physical device surface presentation modes: " + VkUtil.translateVulkanError(err));
+        }
+
+        VkExtent2D swapchainExtent = VkExtent2D.calloc();
+        swapchainExtent.width(width);
+        swapchainExtent.height(height);
+
+        // Try to use mailbox mode. Low latency and non-tearing
+        int swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+        for (int i = 0; i < presentModeCount; i++) {
+            if (pPresentModes.get(i) == VK_PRESENT_MODE_MAILBOX_KHR) {
+                swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
+            }
+            if ((swapchainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (pPresentModes.get(i) == VK_PRESENT_MODE_IMMEDIATE_KHR)) {
+                swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            }
+        }
+        memFree(pPresentModes);
+
+        // Determine the number of images
+        int desiredNumberOfSwapchainImages = surfCaps.minImageCount() + 1;
+        if ((surfCaps.maxImageCount() > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount())) {
+            desiredNumberOfSwapchainImages = surfCaps.maxImageCount();
+        }
+
+        int preTransform;
+        if ((surfCaps.supportedTransforms() & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) != 0) {
+            preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        } else {
+            preTransform = surfCaps.currentTransform();
+        }
+        surfCaps.free();
+
+        VkSwapchainCreateInfoKHR swapchainCI = VkSwapchainCreateInfoKHR.calloc();
+        swapchainCI.sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+        swapchainCI.pNext(NULL);
+        swapchainCI.surface(surface);
+        swapchainCI.minImageCount(desiredNumberOfSwapchainImages);
+        swapchainCI.imageFormat(colorFormat);
+        swapchainCI.imageColorSpace(colorSpace);
+        swapchainCI.imageExtent(swapchainExtent);
+        swapchainCI.imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+        swapchainCI.preTransform(preTransform);
+        swapchainCI.imageArrayLayers(1);
+        swapchainCI.queueFamilyIndexCount(VK_SHARING_MODE_EXCLUSIVE);
+        swapchainCI.queueFamilyIndexCount(0);
+        swapchainCI.pQueueFamilyIndices(null);
+        swapchainCI.presentMode(swapchainPresentMode);
+        swapchainCI.oldSwapchain(oldSwapChain);
+        swapchainCI.clipped(VK_TRUE);
+        swapchainCI.compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
+
+        LongBuffer pSwapChain = memAllocLong(1);
+        err = vkCreateSwapchainKHR(device, swapchainCI, null, pSwapChain);
+        swapchainExtent.free();
+        swapchainCI.free();
+        long swapChain = pSwapChain.get(0);
+        memFree(pSwapChain);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create swap chain: " + VkUtil.translateVulkanError(err));
+        }
+
+        // If we just re-created an existing swapchain, we should destroy the old swapchain at this point.
+        // Note: destroying the swapchain also cleans up all its associated presentable images once the platform is done with them.
+        if (oldSwapChain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(device, oldSwapChain, null);
+        }
+
+        IntBuffer pImageCount = memAllocInt(1);
+        err = vkGetSwapchainImagesKHR(device, swapChain, pImageCount, null);
+        int imageCount = pImageCount.get(0);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get number of swapchain images: " + VkUtil.translateVulkanError(err));
+        }
+
+        LongBuffer pSwapchainImages = memAllocLong(imageCount);
+        err = vkGetSwapchainImagesKHR(device, swapChain, pImageCount, pSwapchainImages);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to get swapchain images: " + VkUtil.translateVulkanError(err));
+        }
+        memFree(pImageCount);
+
+        long[] images = new long[imageCount];
+        long[] imageViews = new long[imageCount];
+        LongBuffer pBufferView = memAllocLong(1);
+        VkImageViewCreateInfo colorAttachmentView = VkImageViewCreateInfo.calloc();
+        colorAttachmentView.sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
+        colorAttachmentView.pNext(0L);
+        colorAttachmentView.format(colorFormat);
+        VkComponentMapping components = colorAttachmentView.components();
+        components.r(VK_COMPONENT_SWIZZLE_R);
+        components.g(VK_COMPONENT_SWIZZLE_G);
+        components.b(VK_COMPONENT_SWIZZLE_B);
+        components.a(VK_COMPONENT_SWIZZLE_A);
+        VkImageSubresourceRange subresourceRange = colorAttachmentView.subresourceRange();
+        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
+        subresourceRange.baseMipLevel(0);
+        subresourceRange.levelCount(1);
+        subresourceRange.baseArrayLayer(0);
+        subresourceRange.layerCount(1);
+        colorAttachmentView.viewType(VK_IMAGE_VIEW_TYPE_2D);
+        colorAttachmentView.flags(0);
+        for (int i = 0; i < imageCount; i++) {
+            images[i] = pSwapchainImages.get(i);
+            // Bring the image from an UNDEFINED state to the PRESENT_SRC state
+            imageBarrier(commandBuffer, images[i], VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            colorAttachmentView.image(images[i]);
+            err = vkCreateImageView(device, colorAttachmentView, null, pBufferView);
+            imageViews[i] = pBufferView.get(0);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to create image view: " + VkUtil.translateVulkanError(err));
+            }
+        }
+        colorAttachmentView.free();
+        memFree(pBufferView);
+        memFree(pSwapchainImages);
+
+        Swapchain ret = new Swapchain();
+        ret.images = images;
+        ret.imageViews = imageViews;
+        ret.swapchainHandle = swapChain;
+        return ret;
+    }
+
+    private static long createClearRenderPass(VkDevice device, int colorFormat) {
+        VkAttachmentDescription.Buffer attachments = VkAttachmentDescription.calloc(1);
+        attachments.format(colorFormat);
+        attachments.samples(VK_SAMPLE_COUNT_1_BIT);
+        attachments.loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+        attachments.storeOp(VK_ATTACHMENT_STORE_OP_STORE);
+        attachments.stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE);
+        attachments.stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE);
+        attachments.initialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        attachments.finalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+        VkAttachmentReference.Buffer colorReference = VkAttachmentReference.calloc(1);
+        colorReference.attachment(0);
+        colorReference.layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+        VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1);
+        subpass.pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+        subpass.flags(0);
+        subpass.inputAttachmentCount(0);
+        subpass.pInputAttachments(null);
+        subpass.colorAttachmentCount(1);
+        subpass.pColorAttachments(colorReference);
+        subpass.pResolveAttachments(null);
+        subpass.pDepthStencilAttachment(null);
+        subpass.preserveAttachmentCount(0);
+        subpass.pPreserveAttachments(null);
+
+        VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc();
+        renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
+        renderPassInfo.pNext(0L);
+        renderPassInfo.attachmentCount(1);
+        renderPassInfo.pAttachments(attachments);
+        renderPassInfo.subpassCount(1);
+        renderPassInfo.pSubpasses(subpass);
+        renderPassInfo.dependencyCount(0);
+        renderPassInfo.pDependencies(null);
+
+        LongBuffer pRenderPass = memAllocLong(1);
+        int err = vkCreateRenderPass(device, renderPassInfo, null, pRenderPass);
+        long renderPass = pRenderPass.get(0);
+        renderPassInfo.free();
+        colorReference.free();
+        subpass.free();
+        attachments.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create clear render pass: " + VkUtil.translateVulkanError(err));
+        }
+        return renderPass;
+    }
+
+    private static long[] createFramebuffers(VkDevice device, Swapchain swapchain, long renderPass, int width, int height) {
+        VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc();
+        fci.sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
+        fci.attachmentCount(1);
+        LongBuffer attachments = memAllocLong(1);
+        fci.pAttachments(attachments);
+        fci.flags(0);
+        fci.height(height);
+        fci.width(width);
+        fci.layers(1);
+        fci.pNext(NULL);
+        fci.renderPass(renderPass);
+        // Create a framebuffer for each swapchain image
+        long[] framebuffers = new long[swapchain.images.length];
+        LongBuffer pFramebuffer = memAllocLong(1);
+        for (int i = 0; i < swapchain.images.length; i++) {
+            attachments.put(0, swapchain.imageViews[i]);
+            int err = vkCreateFramebuffer(device, fci, null, pFramebuffer);
+            long framebuffer = pFramebuffer.get(0);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to create framebuffer: " + VkUtil.translateVulkanError(err));
+            }
+            framebuffers[i] = framebuffer;
+        }
+        memFree(pFramebuffer);
+        fci.free();
+        return framebuffers;
+    }
+
+    private static void submitCommandBuffer(VkQueue queue, VkCommandBuffer commandBuffer) {
+        if (commandBuffer == null || commandBuffer.address() == 0L)
+            return;
+        VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
+        submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+        submitInfo.commandBufferCount(1);
+        PointerBuffer pCommandBuffers = memAllocPointer(1);
+        pCommandBuffers.put(commandBuffer);
+        pCommandBuffers.flip();
+        submitInfo.pCommandBuffers(pCommandBuffers);
+        int err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
+        memFree(pCommandBuffers);
+        submitInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to submit command buffer: " + VkUtil.translateVulkanError(err));
+        }
+    }
+
+    public static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
+        // Create the render command buffers (one command buffer per framebuffer image)
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc();
+        cmdBufAllocateInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+        cmdBufAllocateInfo.commandPool(commandPool);
+        cmdBufAllocateInfo.level(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        cmdBufAllocateInfo.commandBufferCount(framebuffers.length);
+        PointerBuffer pCommandBuffer = memAllocPointer(framebuffers.length);
+        int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to allocate render command buffer: " + VkUtil.translateVulkanError(err));
+        }
+        VkCommandBuffer[] renderCommandBuffers = new VkCommandBuffer[framebuffers.length];
+        for (int i = 0; i < framebuffers.length; i++) {
+            renderCommandBuffers[i] = new VkCommandBuffer(pCommandBuffer.get(i), device);
+        }
+        memFree(pCommandBuffer);
+        cmdBufAllocateInfo.free();
+
+        // Create the command buffer begin structure
+        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
+        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+        cmdBufInfo.pNext(NULL);
+
+        // Specify clear color
+        VkClearValue.Buffer clearValues = VkClearValue.calloc(1);
+        VkClearColorValue clearColor = clearValues.color();
+        clearColor.float32(0, 0.1f);
+        clearColor.float32(1, 0.4f);
+        clearColor.float32(2, 0.7f);
+        clearColor.float32(3, 1.0f);
+
+        // Specify everything to begin a render pass
+        VkRenderPassBeginInfo renderPassBeginInfo = VkRenderPassBeginInfo.calloc();
+        renderPassBeginInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
+        renderPassBeginInfo.pNext(NULL);
+        renderPassBeginInfo.renderPass(renderPass);
+        VkRect2D renderArea = renderPassBeginInfo.renderArea();
+        VkOffset2D offset = renderArea.offset();
+        offset.x(0);
+        offset.y(0);
+        VkExtent2D extent = renderArea.extent();
+        extent.width(width);
+        extent.height(height);
+        renderPassBeginInfo.clearValueCount(1);
+        renderPassBeginInfo.pClearValues(clearValues);
+
+        for (int i = 0; i < renderCommandBuffers.length; ++i) {
+            // Set target frame buffer
+            renderPassBeginInfo.framebuffer(framebuffers[i]);
+
+            err = vkBeginCommandBuffer(renderCommandBuffers[i], cmdBufInfo);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to begin render command buffer: " + VkUtil.translateVulkanError(err));
+            }
+
+            vkCmdBeginRenderPass(renderCommandBuffers[i], renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            // Update dynamic viewport state
+            VkViewport.Buffer viewport = VkViewport.calloc(1);
+            viewport.height(height);
+            viewport.width(width);
+            viewport.minDepth(0.0f);
+            viewport.maxDepth(1.0f);
+            vkCmdSetViewport(renderCommandBuffers[i], 0, 1, viewport);
+            viewport.free();
+
+            // Update dynamic scissor state
+            VkRect2D.Buffer scissor = VkRect2D.calloc(1);
+            VkExtent2D scissorExtent = scissor.extent();
+            VkOffset2D scissorOffset = scissor.offset();
+            scissorExtent.width(width);
+            scissorExtent.height(height);
+            scissorOffset.x(0);
+            scissorOffset.y(0);
+            vkCmdSetScissor(renderCommandBuffers[i], 0, 1, scissor);
+            scissor.free();
+
+            vkCmdEndRenderPass(renderCommandBuffers[i]);
+
+            // Add a present memory barrier to the end of the command buffer
+            // This will transform the frame buffer color attachment to a
+            // new layout for presenting it to the windowing system integration 
+            VkImageMemoryBarrier.Buffer prePresentBarrier = createPrePresentBarrier(swapchain.images[i]);
+            vkCmdPipelineBarrier(renderCommandBuffers[i],
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+                VK_FLAGS_NONE,
+                null, // No memory barriers
+                null, // No buffer memory barriers
+                prePresentBarrier); // One image memory barrier
+            prePresentBarrier.free();
+
+            err = vkEndCommandBuffer(renderCommandBuffers[i]);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to begin render command buffer: " + VkUtil.translateVulkanError(err));
+            }
+        }
+        renderPassBeginInfo.free();
+        clearValues.free();
+        cmdBufInfo.free();
+        return renderCommandBuffers;
+    }
+
+    private static VkImageMemoryBarrier.Buffer createPrePresentBarrier(long presentImage) {
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
+        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+        imageMemoryBarrier.pNext(NULL);
+        imageMemoryBarrier.srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        imageMemoryBarrier.dstAccessMask(0);
+        imageMemoryBarrier.oldLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        imageMemoryBarrier.newLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
+        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
+        subresourceRange.baseMipLevel(0);
+        subresourceRange.levelCount(1);
+        subresourceRange.baseArrayLayer(0);
+        subresourceRange.layerCount(1);
+        imageMemoryBarrier.image(presentImage);
+        return imageMemoryBarrier;
+    }
+
+    private static VkImageMemoryBarrier.Buffer createPostPresentBarrier(long presentImage) {
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
+        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+        imageMemoryBarrier.pNext(NULL);
+        imageMemoryBarrier.srcAccessMask(0);
+        imageMemoryBarrier.dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+        imageMemoryBarrier.oldLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        imageMemoryBarrier.newLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
+        subresourceRange.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT);
+        subresourceRange.baseMipLevel(0);
+        subresourceRange.levelCount(1);
+        subresourceRange.baseArrayLayer(0);
+        subresourceRange.layerCount(1);
+        imageMemoryBarrier.image(presentImage);
+        return imageMemoryBarrier;
+    }
+
+    private static void submitPostPresentBarrier(long image, VkCommandBuffer commandBuffer, VkQueue queue) {
+        VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
+        cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+        cmdBufInfo.pNext(NULL);
+        int err = vkBeginCommandBuffer(commandBuffer, cmdBufInfo);
+        cmdBufInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to begin command buffer: " + VkUtil.translateVulkanError(err));
+        }
+
+        VkImageMemoryBarrier.Buffer postPresentBarrier = createPostPresentBarrier(image);
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            0,
+            null, // No memory barriers,
+            null, // No buffer barriers,
+            postPresentBarrier); // one image barrier
+        postPresentBarrier.free();
+
+        err = vkEndCommandBuffer(commandBuffer);
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to wait for idle queue: " + VkUtil.translateVulkanError(err));
+        }
+
+        // Submit the command buffer
+        submitCommandBuffer(queue, commandBuffer);
+    }
+
+    /*
+     * All resources that must be reallocated on window resize.
+     */
+    private static Swapchain swapchain;
+    private static long[] framebuffers;
+    private static VkCommandBuffer[] renderCommandBuffers;
+
+    public static void main(String[] args) {
+        // Create the Vulkan instance
+        final VkInstance instance = createInstance();
+        final VkPhysicalDevice physicalDevice = getFirstPhysicalDevice(instance);
+        final DeviceAndGraphicsQueueFamily deviceAndGraphicsQueueFamily = createDeviceAndGetGraphicsQueueFamily(physicalDevice);
+        final VkDevice device = deviceAndGraphicsQueueFamily.device;
+        int queueFamilyIndex = deviceAndGraphicsQueueFamily.queueFamilyIndex;
+
+        // Create SWT Display, Shell and VKCanvas
+        final Display display = new Display();
+        final Shell shell = new Shell(display, SWT.SHELL_TRIM | SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE);
+        shell.setLayout(new FillLayout());
+        shell.addListener(SWT.Traverse, new Listener() {
+            public void handleEvent(Event event) {
+                switch (event.detail) {
+                case SWT.TRAVERSE_ESCAPE:
+                    shell.close();
+                    event.detail = SWT.TRAVERSE_NONE;
+                    event.doit = false;
+                    break;
+                }
+            }
+        });
+        VKData data = new VKData();
+        data.instance = instance; // <- set Vulkan instance
+        final VKCanvas canvas = new VKCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
+        final long surface = canvas.surface;
+        final ColorFormatAndSpace colorFormatAndSpace = getColorFormatAndSpace(physicalDevice, surface);
+        final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
+        final long commandPool = createCommandPool(device, queueFamilyIndex);
+        final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
+        final VkCommandBuffer commandBuffer = createCommandBuffer(device, commandPool);
+        final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
+        final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
+        canvas.addControlListener(new ControlAdapter() {
+            public void controlResized(ControlEvent e) {
+                super.controlResized(e);
+                int width = canvas.getSize().x;
+                int height = canvas.getSize().y;
+
+                vkQueueWaitIdle(queue);
+                long oldChain = swapchain != null ? swapchain.swapchainHandle : 0L;
+                swapchain = createSwapChain(device, physicalDevice, surface, oldChain, commandBuffer,
+                        canvas.getSize().x, canvas.getSize().y, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
+                if (framebuffers != null) {
+                    vkDestroyFramebuffer(device, framebuffers[0], null);
+                    vkDestroyFramebuffer(device, framebuffers[1], null);
+                }
+                framebuffers = createFramebuffers(device, swapchain, clearRenderPass, canvas.getSize().x, canvas.getSize().y);
+                // Create render command buffers
+                if (renderCommandBuffers != null) {
+                    vkResetCommandPool(device, renderCommandPool, 0);
+                }
+                renderCommandBuffers = createRenderCommandBuffers(device, renderCommandPool, framebuffers, clearRenderPass, width, height);
+            }
+        });
+        shell.open();
+
+        IntBuffer pImageIndex = memAllocInt(1);
+        int currentBuffer = 0;
+        LongBuffer pWaitSemaphore = memAllocLong(1);
+        PointerBuffer pCommandBuffers = memAllocPointer(1);
+        LongBuffer pSwapchains = memAllocLong(1);
+        while (!shell.isDisposed()) {
+            // Handle window messages. Resize events happen exactly here.
+            // So it is safe to use the new swapchain images and framebuffers afterwards.
+            while (display.readAndDispatch());
+
+            int err;
+            LongBuffer pPresentCompleteSemaphore = memAllocLong(1);
+            long presentCompleteSemaphore;
+            VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
+            presentCompleteSemaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+            presentCompleteSemaphoreCreateInfo.pNext(NULL);
+            presentCompleteSemaphoreCreateInfo.flags(VK_FENCE_CREATE_SIGNALED_BIT);
+
+            err = vkCreateSemaphore(device, presentCompleteSemaphoreCreateInfo, null, pPresentCompleteSemaphore);
+            presentCompleteSemaphoreCreateInfo.free();
+            presentCompleteSemaphore = pPresentCompleteSemaphore.get(0);
+            memFree(pPresentCompleteSemaphore);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to create semaphore: " + VkUtil.translateVulkanError(err));
+            }
+
+            // Get next image in the swap chain (back/front buffer)
+            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, presentCompleteSemaphore, 0L, pImageIndex);
+            currentBuffer = pImageIndex.get(0);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to acquire next swapchain image: " + VkUtil.translateVulkanError(err));
+            }
+
+            VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
+            submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+            submitInfo.waitSemaphoreCount(1);
+            pWaitSemaphore.put(0, presentCompleteSemaphore);
+            submitInfo.pWaitSemaphores(pWaitSemaphore);
+            submitInfo.commandBufferCount(1);
+            pCommandBuffers.put(0, renderCommandBuffers[currentBuffer]);
+            submitInfo.pCommandBuffers(pCommandBuffers);
+
+            // Submit to the graphics queue
+            err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
+            submitInfo.free();
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to submit render queue: " + VkUtil.translateVulkanError(err));
+            }
+
+            // Present the current buffer to the swap chain
+            // This will display the image
+            VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
+            presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+            presentInfo.pNext(NULL);
+            presentInfo.swapchainCount(1);
+            pSwapchains.put(0, swapchain.swapchainHandle);
+            presentInfo.pSwapchains(pSwapchains);
+            presentInfo.pImageIndices(pImageIndex);
+            err = vkQueuePresentKHR(queue, presentInfo);
+            presentInfo.free();
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to present the swapchain image: " + VkUtil.translateVulkanError(err));
+            }
+            vkDestroySemaphore(device, presentCompleteSemaphore, null);
+
+            // Create and submit post present barrier
+            submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
+
+            err = vkQueueWaitIdle(queue);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to wait for idle queue: " + VkUtil.translateVulkanError(err));
+            }
+            
+            System.gc();
+        }
+        memFree(pSwapchains);
+        memFree(pCommandBuffers);
+        memFree(pWaitSemaphore);
+
+        canvas.dispose();
+        display.dispose();
+
+        // We don't bother disposing of all Vulkan resources.
+        // Let the OS process manager take care of it.
+    }
+
+}
