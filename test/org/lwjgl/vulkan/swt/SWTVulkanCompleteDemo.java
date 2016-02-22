@@ -129,7 +129,7 @@ public class SWTVulkanCompleteDemo {
         return new VkPhysicalDevice(physicalDevice, instance);
     }
 
-    static class DeviceAndGraphicsQueueFamily {
+    private static class DeviceAndGraphicsQueueFamily {
         VkDevice device;
         int queueFamilyIndex;
     }
@@ -185,7 +185,7 @@ public class SWTVulkanCompleteDemo {
         return ret;
     }
 
-    static class ColorFormatAndSpace {
+    private static class ColorFormatAndSpace {
         int colorFormat;
         int colorSpace;
     }
@@ -399,7 +399,7 @@ public class SWTVulkanCompleteDemo {
         imageMemoryBarrier.free();
     }
 
-    static class Swapchain {
+    private static class Swapchain {
         long swapchainHandle;
         long[] images;
         long[] imageViews;
@@ -648,7 +648,7 @@ public class SWTVulkanCompleteDemo {
         }
     }
 
-    public static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
+    private static VkCommandBuffer[] createRenderCommandBuffers(VkDevice device, long commandPool, long[] framebuffers, long renderPass, int width, int height) {
         // Create the render command buffers (one command buffer per framebuffer image)
         VkCommandBufferAllocateInfo cmdBufAllocateInfo = VkCommandBufferAllocateInfo.calloc();
         cmdBufAllocateInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
