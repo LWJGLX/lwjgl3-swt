@@ -863,7 +863,7 @@ public class SWTVulkanCompleteDemo {
         final long clearRenderPass = createClearRenderPass(device, colorFormatAndSpace.colorFormat);
         final long commandPool = createCommandPool(device, queueFamilyIndex);
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
-        final VkCommandBuffer commandBuffer = createCommandBuffer(device, commandPool);
+        final VkCommandBuffer setupCommandBuffer = createCommandBuffer(device, commandPool);
         final VkCommandBuffer postPresentCommandBuffer = createCommandBuffer(device, commandPool);
         final VkQueue queue = createDeviceQueue(device, queueFamilyIndex);
 
@@ -874,12 +874,28 @@ public class SWTVulkanCompleteDemo {
                 int width = canvas.getSize().x;
                 int height = canvas.getSize().y;
 
+                // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation
+                VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
+                cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
+                cmdBufInfo.pNext(NULL);
+                int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
+                cmdBufInfo.free();
+                if (err != VK_SUCCESS) {
+                    throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanError(err));
+                }
                 long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
-                swapchain = createSwapChain(device, physicalDevice, surface, oldChain, commandBuffer,
+                // Create the swapchain (this will also add a memory barrier to initialize the framebuffer images)
+                swapchain = createSwapChain(device, physicalDevice, surface, oldChain, setupCommandBuffer,
                         canvas.getSize().x, canvas.getSize().y, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
+                err = vkEndCommandBuffer(setupCommandBuffer);
+                if (err != VK_SUCCESS) {
+                    throw new AssertionError("Failed to end setup command buffer: " + translateVulkanError(err));
+                }
+                submitCommandBuffer(queue, setupCommandBuffer);
+
                 if (framebuffers != null) {
-                    vkDestroyFramebuffer(device, framebuffers[0], null);
-                    vkDestroyFramebuffer(device, framebuffers[1], null);
+                    for (int i = 0; i < framebuffers.length; i++)
+                        vkDestroyFramebuffer(device, framebuffers[i], null);
                 }
                 framebuffers = createFramebuffers(device, swapchain, clearRenderPass, canvas.getSize().x, canvas.getSize().y);
                 // Create render command buffers
