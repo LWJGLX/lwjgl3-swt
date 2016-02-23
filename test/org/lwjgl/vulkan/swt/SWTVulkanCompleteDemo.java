@@ -91,10 +91,9 @@ public class SWTVulkanCompleteDemo {
         pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
         pCreateInfo.pNext(NULL);
         pCreateInfo.pApplicationInfo(appInfo);
-        if (ppEnabledExtensionNames.position() > 0) {
-            pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.position());
-            pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames.flip());
-        }
+        ppEnabledExtensionNames.flip();
+        pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
+        pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
@@ -592,6 +591,7 @@ public class SWTVulkanCompleteDemo {
         LongBuffer pRenderPass = memAllocLong(1);
         int err = vkCreateRenderPass(device, renderPassInfo, null, pRenderPass);
         long renderPass = pRenderPass.get(0);
+        memFree(pRenderPass);
         renderPassInfo.free();
         colorReference.free();
         subpass.free();
@@ -903,7 +903,7 @@ public class SWTVulkanCompleteDemo {
         VkSemaphoreCreateInfo imageAcquiredSemaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
         imageAcquiredSemaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
         imageAcquiredSemaphoreCreateInfo.pNext(NULL);
-        imageAcquiredSemaphoreCreateInfo.flags(VK_FENCE_CREATE_SIGNALED_BIT);
+        imageAcquiredSemaphoreCreateInfo.flags(VK_FLAGS_NONE);
 
         // Info struct to submit a command buffer which will wait on the semaphore
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
