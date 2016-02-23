@@ -874,7 +874,7 @@ public class SWTVulkanCompleteDemo {
                 int width = canvas.getSize().x;
                 int height = canvas.getSize().y;
 
-                // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation
+                // Begin the setup command buffer (the one we will use for swapchain/framebuffer creation)
                 VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo.calloc();
                 cmdBufInfo.sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
                 cmdBufInfo.pNext(NULL);
@@ -914,29 +914,38 @@ public class SWTVulkanCompleteDemo {
         PointerBuffer pCommandBuffers = memAllocPointer(1);
         LongBuffer pSwapchains = memAllocLong(1);
         LongBuffer pImageAcquiredSemaphore = memAllocLong(1);
+        LongBuffer pRenderCompleteSemaphore = memAllocLong(1);
 
         // Info struct to create a semaphore
-        VkSemaphoreCreateInfo imageAcquiredSemaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
-        imageAcquiredSemaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
-        imageAcquiredSemaphoreCreateInfo.pNext(NULL);
-        imageAcquiredSemaphoreCreateInfo.flags(VK_FLAGS_NONE);
+        VkSemaphoreCreateInfo semaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
+        semaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+        semaphoreCreateInfo.pNext(NULL);
+        semaphoreCreateInfo.flags(VK_FLAGS_NONE);
 
         // Info struct to submit a command buffer which will wait on the semaphore
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
         submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+        submitInfo.pNext(NULL);
         submitInfo.waitSemaphoreCount(1);
         submitInfo.pWaitSemaphores(pImageAcquiredSemaphore);
+        IntBuffer pWaitDstStageMask = memAllocInt(1);
+        pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        submitInfo.pWaitDstStageMask(pWaitDstStageMask);
         submitInfo.commandBufferCount(1);
         submitInfo.pCommandBuffers(pCommandBuffers);
+        submitInfo.signalSemaphoreCount(1);
+        submitInfo.pSignalSemaphores(pRenderCompleteSemaphore);
 
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
         presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
         presentInfo.pNext(NULL);
+        presentInfo.waitSemaphoreCount(1);
+        presentInfo.pWaitSemaphores(pRenderCompleteSemaphore);
         presentInfo.swapchainCount(1);
-        pSwapchains.put(0, swapchain.swapchainHandle);
         presentInfo.pSwapchains(pSwapchains);
         presentInfo.pImageIndices(pImageIndex);
+        presentInfo.pResults(null);
         int err;
 
         // The render loop
@@ -946,9 +955,15 @@ public class SWTVulkanCompleteDemo {
             while (display.readAndDispatch());
 
             // Create a semaphore to wait for the swapchain to acquire the next image
-            err = vkCreateSemaphore(device, imageAcquiredSemaphoreCreateInfo, null, pImageAcquiredSemaphore);
+            err = vkCreateSemaphore(device, semaphoreCreateInfo, null, pImageAcquiredSemaphore);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to create semaphore: " + translateVulkanError(err));
+                throw new AssertionError("Failed to create image acquired semaphore: " + translateVulkanError(err));
+            }
+
+            // Create a semaphore to wait for the render to complete, before presenting
+            err = vkCreateSemaphore(device, semaphoreCreateInfo, null, pRenderCompleteSemaphore);
+            if (err != VK_SUCCESS) {
+                throw new AssertionError("Failed to create render complete semaphore: " + translateVulkanError(err));
             }
 
             // Get next image from the swap chain (back/front buffer).
@@ -970,20 +985,24 @@ public class SWTVulkanCompleteDemo {
 
             // Present the current buffer to the swap chain
             // This will display the image
+            pSwapchains.put(0, swapchain.swapchainHandle);
             err = vkQueuePresentKHR(queue, presentInfo);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to present the swapchain image: " + translateVulkanError(err));
             }
             // Destroy this semaphore (we will create a new one in the next frame)
             vkDestroySemaphore(device, pImageAcquiredSemaphore.get(0), null);
+            vkDestroySemaphore(device, pRenderCompleteSemaphore.get(0), null);
 
             // Create and submit post present barrier
             submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
         }
         presentInfo.free();
+        memFree(pWaitDstStageMask);
         submitInfo.free();
         memFree(pImageAcquiredSemaphore);
-        imageAcquiredSemaphoreCreateInfo.free();
+        memFree(pRenderCompleteSemaphore);
+        semaphoreCreateInfo.free();
         memFree(pSwapchains);
         memFree(pCommandBuffers);
 
