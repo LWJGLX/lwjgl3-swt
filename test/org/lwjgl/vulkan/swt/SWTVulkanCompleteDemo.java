@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.Platform;
+import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
@@ -34,6 +35,8 @@ import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkComponentMapping;
+import org.lwjgl.vulkan.VkDebugReportCallbackCreateInfoEXT;
+import org.lwjgl.vulkan.VkDebugReportCallbackEXT;
 import org.lwjgl.vulkan.VkDevice;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
@@ -67,6 +70,17 @@ import org.lwjgl.vulkan.VkViewport;
  */
 public class SWTVulkanCompleteDemo {
 
+    private static ByteBuffer[] layers = {
+            memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_mem_tracker", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_object_tracker", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_draw_state", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_param_checker", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_swapchain", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_device_limits", BufferAllocator.MALLOC),
+            memEncodeASCII("VK_LAYER_LUNARG_image", BufferAllocator.MALLOC)
+    };
+
     /**
      * Create a Vulkan instance using LWJGL 3.
      * 
@@ -87,13 +101,19 @@ public class SWTVulkanCompleteDemo {
         ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
+        ppEnabledExtensionNames.flip();
+        PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
+        for (int i = 0; i < layers.length; i++)
+            ppEnabledLayerNames.put(layers[i]);
+        ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
         pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
         pCreateInfo.pNext(NULL);
         pCreateInfo.pApplicationInfo(appInfo);
-        ppEnabledExtensionNames.flip();
-        pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
         pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
+        pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
+        pCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
+        pCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
@@ -107,6 +127,23 @@ public class SWTVulkanCompleteDemo {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
         }
         return new VkInstance(instance);
+    }
+
+    private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
+        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc();
+        dbgCreateInfo.sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT);
+        dbgCreateInfo.pNext(NULL);
+        dbgCreateInfo.pfnCallback(callback);
+        dbgCreateInfo.pUserData(NULL);
+        dbgCreateInfo.flags(VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT);
+        LongBuffer pCallback = memAllocLong(1);
+        int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
+        memFree(pCallback);
+        dbgCreateInfo.free();
+        if (err != VK_SUCCESS) {
+            throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
+        }
+        return pCallback.get(0);
     }
 
     private static VkPhysicalDevice getFirstPhysicalDevice(VkInstance instance) {
@@ -156,6 +193,10 @@ public class SWTVulkanCompleteDemo {
         ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
+        PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
+        for (int i = 0; i < layers.length; i++)
+            ppEnabledLayerNames.put(layers[i]);
+        ppEnabledLayerNames.flip();
 
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc();
         deviceCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
@@ -164,6 +205,8 @@ public class SWTVulkanCompleteDemo {
         deviceCreateInfo.pQueueCreateInfos(queueCreateInfo);
         deviceCreateInfo.enabledExtensionCount(1);
         deviceCreateInfo.ppEnabledExtensionNames(extensions);
+        deviceCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
+        deviceCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
@@ -833,6 +876,13 @@ public class SWTVulkanCompleteDemo {
     public static void main(String[] args) {
         // Create the Vulkan instance
         final VkInstance instance = createInstance();
+        final VkDebugReportCallbackEXT debugCallback = new VkDebugReportCallbackEXT() {
+            public int invoke(int flags, int objectType, long object, long location, int messageCode, long pLayerPrefix, long pMessage, long pUserData) {
+                System.err.println("ERROR OCCURED: " + memDecodeASCII(pMessage));
+                return 0;
+            }
+        };
+        final long debugCallbackHandle = setupDebugging(instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, debugCallback);
         final VkPhysicalDevice physicalDevice = getFirstPhysicalDevice(instance);
         final DeviceAndGraphicsQueueFamily deviceAndGraphicsQueueFamily = createDeviceAndGetGraphicsQueueFamily(physicalDevice);
         final VkDevice device = deviceAndGraphicsQueueFamily.device;
@@ -1005,6 +1055,8 @@ public class SWTVulkanCompleteDemo {
         semaphoreCreateInfo.free();
         memFree(pSwapchains);
         memFree(pCommandBuffers);
+
+        vkDestroyDebugReportCallbackEXT(instance, debugCallbackHandle, null);
 
         canvas.dispose();
         display.dispose();
