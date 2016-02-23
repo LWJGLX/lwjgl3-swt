@@ -135,7 +135,7 @@ public class SWTVulkanCompleteDemo {
         dbgCreateInfo.pNext(NULL);
         dbgCreateInfo.pfnCallback(callback);
         dbgCreateInfo.pUserData(NULL);
-        dbgCreateInfo.flags(VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT);
+        dbgCreateInfo.flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
         memFree(pCallback);
@@ -377,7 +377,8 @@ public class SWTVulkanCompleteDemo {
         // Only allowed as initial layout!
         // Make sure any writes to the image have been finished
         if (oldImageLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
-            imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+            //imageMemoryBarrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+            imageMemoryBarrier.srcAccessMask(0);// <- validation layer tells that this must be 0
         }
 
         // Old layout is color attachment
@@ -1045,6 +1046,7 @@ public class SWTVulkanCompleteDemo {
             vkDestroySemaphore(device, pRenderCompleteSemaphore.get(0), null);
 
             // Create and submit post present barrier
+            vkQueueWaitIdle(queue);
             submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
         }
         presentInfo.free();
