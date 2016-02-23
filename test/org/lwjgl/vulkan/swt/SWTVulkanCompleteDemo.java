@@ -320,6 +320,8 @@ public class SWTVulkanCompleteDemo {
         imageMemoryBarrier.pNext(NULL);
         imageMemoryBarrier.oldLayout(oldImageLayout);
         imageMemoryBarrier.newLayout(newImageLayout);
+        imageMemoryBarrier.srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+        imageMemoryBarrier.dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
         imageMemoryBarrier.image(image);
         VkImageSubresourceRange subresourceRange = imageMemoryBarrier.subresourceRange();
         subresourceRange.aspectMask(aspectMask);
@@ -394,7 +396,10 @@ public class SWTVulkanCompleteDemo {
         int destStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
         // Put barrier inside setup command buffer
-        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE, null, null, imageMemoryBarrier);
+        vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE,
+                null, // no memory barriers
+                null, // no buffer memory barriers
+                imageMemoryBarrier); // one image memory barrier
         imageMemoryBarrier.free();
     }
 
@@ -468,7 +473,7 @@ public class SWTVulkanCompleteDemo {
         swapchainCI.imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
         swapchainCI.preTransform(preTransform);
         swapchainCI.imageArrayLayers(1);
-        swapchainCI.queueFamilyIndexCount(VK_SHARING_MODE_EXCLUSIVE);
+        swapchainCI.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
         swapchainCI.queueFamilyIndexCount(0);
         swapchainCI.pQueueFamilyIndices(null);
         swapchainCI.presentMode(swapchainPresentMode);
@@ -730,7 +735,7 @@ public class SWTVulkanCompleteDemo {
             VkImageMemoryBarrier.Buffer prePresentBarrier = createPrePresentBarrier(swapchain.images[i]);
             vkCmdPipelineBarrier(renderCommandBuffers[i],
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                 VK_FLAGS_NONE,
                 null, // No memory barriers
                 null, // No buffer memory barriers
