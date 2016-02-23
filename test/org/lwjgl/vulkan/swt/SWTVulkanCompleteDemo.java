@@ -91,15 +91,17 @@ public class SWTVulkanCompleteDemo {
         appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         appInfo.pApplicationName("SWT Vulkan Demo");
         appInfo.pEngineName("");
-        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 3));
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(2);
-        ByteBuffer VK_KHR_SURFACE_EXTENSION;
-        if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        else
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
+        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
+        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
+        if (Platform.get() == Platform.WINDOWS)
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        else
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
+        ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
         ppEnabledExtensionNames.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -119,6 +121,7 @@ public class SWTVulkanCompleteDemo {
         long instance = pInstance.get(0);
         memFree(pInstance);
         pCreateInfo.free();
+        memFree(VK_KHR_OS_SURFACE_EXTENSION);
         memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
         memFree(VK_KHR_SURFACE_EXTENSION);
         memFree(ppEnabledExtensionNames);
