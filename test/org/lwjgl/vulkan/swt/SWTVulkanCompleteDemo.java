@@ -198,7 +198,7 @@ public class SWTVulkanCompleteDemo {
         // Iterate over each queue to learn whether it supports presenting:
         IntBuffer supportsPresent = memAllocInt(queueCount);
         for (int i = 0; i < queueCount; i++) {
-            supportsPresent.position(i * 4);
+            supportsPresent.position(i);
             int err = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, supportsPresent);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to physical device surface support: " + translateVulkanError(err));
@@ -315,7 +315,9 @@ public class SWTVulkanCompleteDemo {
 
     private static void imageBarrier(VkCommandBuffer cmdbuffer, long image, int aspectMask, int oldImageLayout, int newImageLayout) {
         // Create an image barrier object
-        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.malloc(1);
+        VkImageMemoryBarrier.Buffer imageMemoryBarrier = VkImageMemoryBarrier.calloc(1);
+        imageMemoryBarrier.sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER);
+        imageMemoryBarrier.pNext(NULL);
         imageMemoryBarrier.oldLayout(oldImageLayout);
         imageMemoryBarrier.newLayout(newImageLayout);
         imageMemoryBarrier.image(image);
@@ -393,7 +395,6 @@ public class SWTVulkanCompleteDemo {
 
         // Put barrier inside setup command buffer
         vkCmdPipelineBarrier(cmdbuffer, srcStageFlags, destStageFlags, VK_FLAGS_NONE, null, null, imageMemoryBarrier);
-
         imageMemoryBarrier.free();
     }
 
@@ -426,10 +427,6 @@ public class SWTVulkanCompleteDemo {
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanError(err));
         }
-
-        VkExtent2D swapchainExtent = VkExtent2D.calloc();
-        swapchainExtent.width(width);
-        swapchainExtent.height(height);
 
         // Try to use mailbox mode. Low latency and non-tearing
         int swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -465,7 +462,9 @@ public class SWTVulkanCompleteDemo {
         swapchainCI.minImageCount(desiredNumberOfSwapchainImages);
         swapchainCI.imageFormat(colorFormat);
         swapchainCI.imageColorSpace(colorSpace);
-        swapchainCI.imageExtent(swapchainExtent);
+        VkExtent2D swapchainExtent = swapchainCI.imageExtent();
+        swapchainExtent.width(width);
+        swapchainExtent.height(height);
         swapchainCI.imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
         swapchainCI.preTransform(preTransform);
         swapchainCI.imageArrayLayers(1);
@@ -479,7 +478,6 @@ public class SWTVulkanCompleteDemo {
 
         LongBuffer pSwapChain = memAllocLong(1);
         err = vkCreateSwapchainKHR(device, swapchainCI, null, pSwapChain);
-        swapchainExtent.free();
         swapchainCI.free();
         long swapChain = pSwapChain.get(0);
         memFree(pSwapChain);
@@ -955,11 +953,6 @@ public class SWTVulkanCompleteDemo {
 
             // Create and submit post present barrier
             submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
-
-            err = vkQueueWaitIdle(queue);
-            if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to wait for idle queue: " + translateVulkanError(err));
-            }
         }
         memFree(pSwapchains);
         memFree(pCommandBuffers);
