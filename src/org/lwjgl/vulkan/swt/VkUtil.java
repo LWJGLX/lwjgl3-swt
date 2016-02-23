@@ -16,6 +16,11 @@ public class VkUtil {
      */
     public static final int VK_FLAGS_NONE = 0;
 
+    /**
+     * This is just -1L, but it is nicer as a symbolic constant.
+     */
+    public static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
+
     public static int VK_MAKE_VERSION(int major, int minor, int patch) {
         return (major << 22) | (minor << 12) | (patch << 0);
     }

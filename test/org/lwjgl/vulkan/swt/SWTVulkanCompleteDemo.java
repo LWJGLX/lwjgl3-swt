@@ -937,7 +937,7 @@ public class SWTVulkanCompleteDemo {
 
             // Get next image from the swap chain (back/front buffer).
             // This will setup the imageAquiredSemaphore to be signalled when the operation is complete
-            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
+            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, UINT64_MAX, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
             currentBuffer = pImageIndex.get(0);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanError(err));
