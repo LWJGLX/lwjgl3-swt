@@ -136,7 +136,7 @@ public class SWTVulkanCompleteDemo {
         IntBuffer pQueueFamilyPropertyCount = memAllocInt(1);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, null);
         int queueCount = pQueueFamilyPropertyCount.get(0);
-        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.malloc(queueCount);
+        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.calloc(queueCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, queueProps);
         memFree(pQueueFamilyPropertyCount);
         int graphicsQueueFamilyIndex;
@@ -192,7 +192,7 @@ public class SWTVulkanCompleteDemo {
         IntBuffer pQueueFamilyPropertyCount = memAllocInt(1);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, null);
         int queueCount = pQueueFamilyPropertyCount.get(0);
-        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.malloc(queueCount);
+        VkQueueFamilyProperties.Buffer queueProps = VkQueueFamilyProperties.calloc(queueCount);
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, pQueueFamilyPropertyCount, queueProps);
 
         // Iterate over each queue to learn whether it supports presenting:
@@ -886,77 +886,85 @@ public class SWTVulkanCompleteDemo {
         });
         shell.open();
 
+        // Pre-allocate everything needed in the render loop
+
         IntBuffer pImageIndex = memAllocInt(1);
         int currentBuffer = 0;
-        LongBuffer pWaitSemaphore = memAllocLong(1);
         PointerBuffer pCommandBuffers = memAllocPointer(1);
         LongBuffer pSwapchains = memAllocLong(1);
+        LongBuffer pImageAcquiredSemaphore = memAllocLong(1);
+
+        // Info struct to create a semaphore
+        VkSemaphoreCreateInfo imageAcquiredSemaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
+        imageAcquiredSemaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+        imageAcquiredSemaphoreCreateInfo.pNext(NULL);
+        imageAcquiredSemaphoreCreateInfo.flags(VK_FENCE_CREATE_SIGNALED_BIT);
+
+        // Info struct to submit a command buffer which will wait on the semaphore
+        VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
+        submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
+        submitInfo.waitSemaphoreCount(1);
+        submitInfo.pWaitSemaphores(pImageAcquiredSemaphore);
+        submitInfo.commandBufferCount(1);
+        submitInfo.pCommandBuffers(pCommandBuffers);
+
+        // Info struct to present the current swapchain image to the display
+        VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
+        presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
+        presentInfo.pNext(NULL);
+        presentInfo.swapchainCount(1);
+        pSwapchains.put(0, swapchain.swapchainHandle);
+        presentInfo.pSwapchains(pSwapchains);
+        presentInfo.pImageIndices(pImageIndex);
+        int err;
+
+        // The render loop
         while (!shell.isDisposed()) {
             // Handle window messages. Resize events happen exactly here.
             // So it is safe to use the new swapchain images and framebuffers afterwards.
             while (display.readAndDispatch());
 
-            int err;
-            LongBuffer pPresentCompleteSemaphore = memAllocLong(1);
-            long presentCompleteSemaphore;
-            VkSemaphoreCreateInfo presentCompleteSemaphoreCreateInfo = VkSemaphoreCreateInfo.calloc();
-            presentCompleteSemaphoreCreateInfo.sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
-            presentCompleteSemaphoreCreateInfo.pNext(NULL);
-            presentCompleteSemaphoreCreateInfo.flags(VK_FENCE_CREATE_SIGNALED_BIT);
-
-            err = vkCreateSemaphore(device, presentCompleteSemaphoreCreateInfo, null, pPresentCompleteSemaphore);
-            presentCompleteSemaphoreCreateInfo.free();
-            presentCompleteSemaphore = pPresentCompleteSemaphore.get(0);
-            memFree(pPresentCompleteSemaphore);
+            // Create a semaphore to wait for the swapchain to acquire the next image
+            err = vkCreateSemaphore(device, imageAcquiredSemaphoreCreateInfo, null, pImageAcquiredSemaphore);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to create semaphore: " + translateVulkanError(err));
             }
 
-            // Get next image in the swap chain (back/front buffer)
-            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, presentCompleteSemaphore, VK_NULL_HANDLE, pImageIndex);
+            // Get next image from the swap chain (back/front buffer).
+            // This will setup the imageAquiredSemaphore to be signalled when the operation is complete
+            err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, Long.MAX_VALUE, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
             currentBuffer = pImageIndex.get(0);
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanError(err));
             }
 
-            VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
-            submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-            submitInfo.waitSemaphoreCount(1);
-            pWaitSemaphore.put(0, presentCompleteSemaphore);
-            submitInfo.pWaitSemaphores(pWaitSemaphore);
-            submitInfo.commandBufferCount(1);
+            // Select the command buffer for the current framebuffer image/attachment
             pCommandBuffers.put(0, renderCommandBuffers[currentBuffer]);
-            submitInfo.pCommandBuffers(pCommandBuffers);
 
             // Submit to the graphics queue
             err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
-            submitInfo.free();
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to submit render queue: " + translateVulkanError(err));
             }
 
             // Present the current buffer to the swap chain
             // This will display the image
-            VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
-            presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-            presentInfo.pNext(NULL);
-            presentInfo.swapchainCount(1);
-            pSwapchains.put(0, swapchain.swapchainHandle);
-            presentInfo.pSwapchains(pSwapchains);
-            presentInfo.pImageIndices(pImageIndex);
             err = vkQueuePresentKHR(queue, presentInfo);
-            presentInfo.free();
             if (err != VK_SUCCESS) {
                 throw new AssertionError("Failed to present the swapchain image: " + translateVulkanError(err));
             }
-            vkDestroySemaphore(device, presentCompleteSemaphore, null);
+            // Destroy this semaphore (we will create a new one in the next frame)
+            vkDestroySemaphore(device, pImageAcquiredSemaphore.get(0), null);
 
             // Create and submit post present barrier
             submitPostPresentBarrier(swapchain.images[currentBuffer], postPresentCommandBuffer, queue);
         }
+        presentInfo.free();
+        submitInfo.free();
+        memFree(pImageAcquiredSemaphore);
+        imageAcquiredSemaphoreCreateInfo.free();
         memFree(pSwapchains);
         memFree(pCommandBuffers);
-        memFree(pWaitSemaphore);
 
         canvas.dispose();
         display.dispose();
