@@ -68,7 +68,7 @@ import org.lwjgl.vulkan.VkViewport;
  * 
  * @author Kai Burjack
  */
-public class SWTVulkanCompleteDemo {
+public class ClearScreenDemo {
 
     private static ByteBuffer[] layers = {
             memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
@@ -120,16 +120,10 @@ public class SWTVulkanCompleteDemo {
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
         memFree(pInstance);
-        pCreateInfo.free();
-        memFree(VK_KHR_OS_SURFACE_EXTENSION);
-        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
-        memFree(VK_KHR_SURFACE_EXTENSION);
-        memFree(ppEnabledExtensionNames);
-        appInfo.free();
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
         }
-        return new VkInstance(instance);
+        return new VkInstance(instance, pCreateInfo);
     }
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
@@ -215,15 +209,11 @@ public class SWTVulkanCompleteDemo {
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
         long device = pDevice.get(0);
         memFree(pDevice);
-        queueCreateInfo.free();
-        deviceCreateInfo.free();
-        memFree(extensions);
-        memFree(pQueuePriorities);
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create device: " + translateVulkanError(err));
         }
         DeviceAndGraphicsQueueFamily ret = new DeviceAndGraphicsQueueFamily();
-        ret.device = new VkDevice(device, physicalDevice);
+        ret.device = new VkDevice(device, physicalDevice, deviceCreateInfo);
         ret.queueFamilyIndex = graphicsQueueFamilyIndex;
         return ret;
     }

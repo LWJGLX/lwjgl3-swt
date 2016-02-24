@@ -33,7 +33,7 @@ import org.lwjgl.vulkan.VkInstanceCreateInfo;
  * 
  * @author Kai Burjack
  */
-public class SWTVulkanSimpleDemo {
+public class SimpleDemo {
 
     /**
      * Create a Vulkan instance using LWJGL 3.
@@ -41,24 +41,24 @@ public class SWTVulkanSimpleDemo {
      * @return the VkInstance handle
      */
     private static VkInstance createInstance() {
-        VkApplicationInfo appInfo = VkApplicationInfo.calloc();
-        appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
-        appInfo.pApplicationName("SWT Vulkan Demo");
-        appInfo.pEngineName("");
-        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 3));
+        VkApplicationInfo appInfo = VkApplicationInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                .pApplicationName("SWT Vulkan Demo")
+                .pEngineName("")
+                .apiVersion(VK_MAKE_VERSION(1, 0, 3));
         PointerBuffer ppEnabledExtensionNames = MemoryUtil.memAllocPointer(2);
         ByteBuffer VK_KHR_SURFACE_EXTENSION;
+        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
         if (Platform.get() == Platform.WINDOWS)
             VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         else
             VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
-        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
-        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
-        pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-        pCreateInfo.pNext(0L);
-        pCreateInfo.pApplicationInfo(appInfo);
+        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                .pNext(0L)
+                .pApplicationInfo(appInfo);
         if (ppEnabledExtensionNames.position() > 0) {
             pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.position());
             pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames.flip());
@@ -70,12 +70,7 @@ public class SWTVulkanSimpleDemo {
         }
         long instance = pInstance.get(0);
         memFree(pInstance);
-        pCreateInfo.free();
-        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
-        memFree(VK_KHR_SURFACE_EXTENSION);
-        memFree(ppEnabledExtensionNames);
-        appInfo.free();
-        return new VkInstance(instance);
+        return new VkInstance(instance, pCreateInfo);
     }
 
     public static void main(String[] args) {
