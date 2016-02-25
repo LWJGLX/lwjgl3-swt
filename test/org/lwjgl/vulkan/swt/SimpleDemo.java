@@ -1,16 +1,11 @@
 package org.lwjgl.vulkan.swt;
 
-import static org.lwjgl.system.MemoryUtil.memEncodeASCII;
-import static org.lwjgl.system.MemoryUtil.memFree;
-import static org.lwjgl.vulkan.EXTDebugReport.VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-import static org.lwjgl.vulkan.KHRWin32Surface.VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
-import static org.lwjgl.vulkan.KHRXlibSurface.VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
-import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_APPLICATION_INFO;
-import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
-import static org.lwjgl.vulkan.VK10.vkCreateInstance;
-import static org.lwjgl.vulkan.swt.VkUtil.VK_MAKE_VERSION;
-import static org.lwjgl.vulkan.swt.VkUtil.translateVulkanError;
+import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.vulkan.KHRSurface.*;
+import static org.lwjgl.vulkan.KHRWin32Surface.*;
+import static org.lwjgl.vulkan.KHRXlibSurface.*;
+import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.swt.VkUtil.*;
 
 import java.nio.ByteBuffer;
 
@@ -45,23 +40,24 @@ public class SimpleDemo {
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
                 .pApplicationName("SWT Vulkan Demo")
                 .pEngineName("")
-                .apiVersion(VK_MAKE_VERSION(1, 0, 3));
-        PointerBuffer ppEnabledExtensionNames = MemoryUtil.memAllocPointer(2);
-        ByteBuffer VK_KHR_SURFACE_EXTENSION;
-        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+                .apiVersion(VK_MAKE_VERSION(1, 0, 2));
+        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
         if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         else
-            VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(2);
         ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
-        ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
+        ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
+        ppEnabledExtensionNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                 .pNext(0L)
                 .pApplicationInfo(appInfo);
-        if (ppEnabledExtensionNames.position() > 0) {
-            pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.position());
-            pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames.flip());
+        if (ppEnabledExtensionNames.remaining() > 0) {
+            pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
+            pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
         }
         PointerBuffer pInstance = MemoryUtil.memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
@@ -70,7 +66,12 @@ public class SimpleDemo {
         }
         long instance = pInstance.get(0);
         memFree(pInstance);
-        return new VkInstance(instance, pCreateInfo);
+        VkInstance ret = new VkInstance(instance, pCreateInfo);
+        memFree(ppEnabledExtensionNames);
+        memFree(VK_KHR_OS_SURFACE_EXTENSION);
+        memFree(VK_KHR_SURFACE_EXTENSION);
+        appInfo.free();
+        return ret;
     }
 
     public static void main(String[] args) {

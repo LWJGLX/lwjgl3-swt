@@ -7,6 +7,7 @@ import static org.lwjgl.vulkan.KHRWin32Surface.*;
 import static org.lwjgl.vulkan.KHRXlibSurface.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
+import static org.lwjgl.vulkan.VKUtil.translateVulkanResult;
 import static org.lwjgl.vulkan.swt.VkUtil.*;
 
 import java.nio.ByteBuffer;
@@ -70,6 +71,8 @@ import org.lwjgl.vulkan.VkViewport;
  */
 public class ClearScreenDemo {
 
+    private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
+
     private static ByteBuffer[] layers = {
             memEncodeASCII("VK_LAYER_LUNARG_threading", BufferAllocator.MALLOC),
             memEncodeASCII("VK_LAYER_LUNARG_mem_tracker", BufferAllocator.MALLOC),
@@ -87,12 +90,11 @@ public class ClearScreenDemo {
      * @return the VkInstance handle
      */
     private static VkInstance createInstance() {
-        VkApplicationInfo appInfo = VkApplicationInfo.calloc();
-        appInfo.sType(VK_STRUCTURE_TYPE_APPLICATION_INFO);
-        appInfo.pApplicationName("SWT Vulkan Demo");
-        appInfo.pEngineName("");
-        appInfo.apiVersion(VK_MAKE_VERSION(1, 0, 2));
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
+        VkApplicationInfo appInfo = VkApplicationInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+                .pApplicationName("SWT Vulkan Demo")
+                .pEngineName("")
+                .apiVersion(VK_MAKE_VERSION(1, 0, 2));
         ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
         ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
@@ -100,6 +102,7 @@ public class ClearScreenDemo {
             VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         else
             VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
         ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
@@ -108,14 +111,14 @@ public class ClearScreenDemo {
         for (int i = 0; i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
-        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc();
-        pCreateInfo.sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-        pCreateInfo.pNext(NULL);
-        pCreateInfo.pApplicationInfo(appInfo);
-        pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
-        pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
-        pCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
-        pCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
+        VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+                .pNext(NULL)
+                .pApplicationInfo(appInfo)
+                .enabledExtensionCount(ppEnabledExtensionNames.remaining())
+                .ppEnabledExtensionNames(ppEnabledExtensionNames)
+                .enabledLayerCount(ppEnabledLayerNames.remaining())
+                .ppEnabledLayerNames(ppEnabledLayerNames);
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         long instance = pInstance.get(0);
@@ -123,16 +126,24 @@ public class ClearScreenDemo {
         if (err != VK_SUCCESS) {
             throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
         }
-        return new VkInstance(instance, pCreateInfo);
+        VkInstance ret = new VkInstance(instance, pCreateInfo);
+        pCreateInfo.free();
+        memFree(ppEnabledLayerNames);
+        memFree(ppEnabledExtensionNames);
+        memFree(VK_KHR_OS_SURFACE_EXTENSION);
+        memFree(VK_EXT_DEBUG_REPORT_EXTENSION);
+        memFree(VK_KHR_SURFACE_EXTENSION);
+        appInfo.free();
+        return ret;
     }
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
-        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc();
-        dbgCreateInfo.sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT);
-        dbgCreateInfo.pNext(NULL);
-        dbgCreateInfo.pfnCallback(callback);
-        dbgCreateInfo.pUserData(NULL);
-        dbgCreateInfo.flags(flags);
+        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT)
+                .pNext(NULL)
+                .pfnCallback(callback)
+                .pUserData(NULL)
+                .flags(flags);
         LongBuffer pCallback = memAllocLong(1);
         int err = vkCreateDebugReportCallbackEXT(instance, dbgCreateInfo, null, pCallback);
         memFree(pCallback);
@@ -180,41 +191,48 @@ public class ClearScreenDemo {
         queueProps.free();
         FloatBuffer pQueuePriorities = memAllocFloat(1).put(0.0f);
         pQueuePriorities.flip();
-        VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1);
-        queueCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-        queueCreateInfo.queueFamilyIndex(graphicsQueueFamilyIndex);
-        queueCreateInfo.queueCount(1);
-        queueCreateInfo.pQueuePriorities(pQueuePriorities);
+        VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
+                .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                .queueFamilyIndex(graphicsQueueFamilyIndex)
+                .queueCount(1)
+                .pQueuePriorities(pQueuePriorities);
 
-        PointerBuffer extensions = memAllocPointer(2);
+        PointerBuffer extensions = memAllocPointer(1);
         ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; i < layers.length; i++)
+        for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
 
-        VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc();
-        deviceCreateInfo.sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-        deviceCreateInfo.pNext(NULL);
-        deviceCreateInfo.queueCreateInfoCount(1);
-        deviceCreateInfo.pQueueCreateInfos(queueCreateInfo);
-        deviceCreateInfo.enabledExtensionCount(1);
-        deviceCreateInfo.ppEnabledExtensionNames(extensions);
-        deviceCreateInfo.enabledLayerCount(ppEnabledLayerNames.remaining());
-        deviceCreateInfo.ppEnabledLayerNames(ppEnabledLayerNames);
+        VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
+                .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                .pNext(NULL)
+                .queueCreateInfoCount(1)
+                .pQueueCreateInfos(queueCreateInfo)
+                .enabledExtensionCount(1)
+                .ppEnabledExtensionNames(extensions)
+                .enabledLayerCount(ppEnabledLayerNames.remaining())
+                .ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
         int err = vkCreateDevice(physicalDevice, deviceCreateInfo, null, pDevice);
         long device = pDevice.get(0);
         memFree(pDevice);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create device: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create device: " + translateVulkanResult(err));
         }
+
         DeviceAndGraphicsQueueFamily ret = new DeviceAndGraphicsQueueFamily();
         ret.device = new VkDevice(device, physicalDevice, deviceCreateInfo);
         ret.queueFamilyIndex = graphicsQueueFamilyIndex;
+
+        deviceCreateInfo.free();
+        memFree(ppEnabledLayerNames);
+        memFree(VK_KHR_SWAPCHAIN_EXTENSION);
+        memFree(extensions);
+        memFree(pQueuePriorities);
         return ret;
     }
 
