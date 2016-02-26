@@ -115,9 +115,7 @@ public class ClearScreenDemo {
                 .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                 .pNext(NULL)
                 .pApplicationInfo(appInfo)
-                .enabledExtensionCount(ppEnabledExtensionNames.remaining())
                 .ppEnabledExtensionNames(ppEnabledExtensionNames)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
                 .ppEnabledLayerNames(ppEnabledLayerNames);
         PointerBuffer pInstance = memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
@@ -139,7 +137,7 @@ public class ClearScreenDemo {
 
     private static long setupDebugging(VkInstance instance, int flags, VkDebugReportCallbackEXT callback) {
         VkDebugReportCallbackCreateInfoEXT dbgCreateInfo = VkDebugReportCallbackCreateInfoEXT.calloc()
-                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT)
+                .sType(VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
                 .pNext(NULL)
                 .pfnCallback(callback)
                 .pUserData(NULL)
@@ -195,7 +193,6 @@ public class ClearScreenDemo {
         VkDeviceQueueCreateInfo.Buffer queueCreateInfo = VkDeviceQueueCreateInfo.calloc(1)
                 .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
                 .queueFamilyIndex(graphicsQueueFamilyIndex)
-                .queueCount(1)
                 .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
@@ -210,11 +207,8 @@ public class ClearScreenDemo {
         VkDeviceCreateInfo deviceCreateInfo = VkDeviceCreateInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
                 .pNext(NULL)
-                .queueCreateInfoCount(1)
                 .pQueueCreateInfos(queueCreateInfo)
-                .enabledExtensionCount(1)
                 .ppEnabledExtensionNames(extensions)
-                .enabledLayerCount(ppEnabledLayerNames.remaining())
                 .ppEnabledLayerNames(ppEnabledLayerNames);
 
         PointerBuffer pDevice = memAllocPointer(1);
@@ -529,7 +523,6 @@ public class ClearScreenDemo {
         swapchainCI.preTransform(preTransform);
         swapchainCI.imageArrayLayers(1);
         swapchainCI.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
-        swapchainCI.queueFamilyIndexCount(0);
         swapchainCI.pQueueFamilyIndices(null);
         swapchainCI.presentMode(swapchainPresentMode);
         swapchainCI.oldSwapchain(oldSwapChain);
@@ -625,23 +618,18 @@ public class ClearScreenDemo {
         VkSubpassDescription.Buffer subpass = VkSubpassDescription.calloc(1);
         subpass.pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
         subpass.flags(VK_FLAGS_NONE);
-        subpass.inputAttachmentCount(0);
         subpass.pInputAttachments(null);
-        subpass.colorAttachmentCount(1);
+        subpass.colorAttachmentCount(colorReference.remaining());
         subpass.pColorAttachments(colorReference);
         subpass.pResolveAttachments(null);
         subpass.pDepthStencilAttachment(null);
-        subpass.preserveAttachmentCount(0);
         subpass.pPreserveAttachments(null);
 
         VkRenderPassCreateInfo renderPassInfo = VkRenderPassCreateInfo.calloc();
         renderPassInfo.sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
         renderPassInfo.pNext(NULL);
-        renderPassInfo.attachmentCount(1);
         renderPassInfo.pAttachments(attachments);
-        renderPassInfo.subpassCount(1);
         renderPassInfo.pSubpasses(subpass);
-        renderPassInfo.dependencyCount(0);
         renderPassInfo.pDependencies(null);
 
         LongBuffer pRenderPass = memAllocLong(1);
@@ -661,7 +649,6 @@ public class ClearScreenDemo {
     private static long[] createFramebuffers(VkDevice device, Swapchain swapchain, long renderPass, int width, int height) {
         VkFramebufferCreateInfo fci = VkFramebufferCreateInfo.calloc();
         fci.sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO);
-        fci.attachmentCount(1);
         LongBuffer attachments = memAllocLong(1);
         fci.pAttachments(attachments);
         fci.flags(VK_FLAGS_NONE);
@@ -692,7 +679,6 @@ public class ClearScreenDemo {
             return;
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
         submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-        submitInfo.commandBufferCount(1);
         PointerBuffer pCommandBuffers = memAllocPointer(1);
         pCommandBuffers.put(commandBuffer);
         pCommandBuffers.flip();
@@ -749,7 +735,6 @@ public class ClearScreenDemo {
         VkExtent2D extent = renderArea.extent();
         extent.width(width);
         extent.height(height);
-        renderPassBeginInfo.clearValueCount(1);
         renderPassBeginInfo.pClearValues(clearValues);
 
         for (int i = 0; i < renderCommandBuffers.length; ++i) {
@@ -990,23 +975,20 @@ public class ClearScreenDemo {
         VkSubmitInfo submitInfo = VkSubmitInfo.calloc();
         submitInfo.sType(VK_STRUCTURE_TYPE_SUBMIT_INFO);
         submitInfo.pNext(NULL);
-        submitInfo.waitSemaphoreCount(1);
+        submitInfo.waitSemaphoreCount(pImageAcquiredSemaphore.remaining());
         submitInfo.pWaitSemaphores(pImageAcquiredSemaphore);
         IntBuffer pWaitDstStageMask = memAllocInt(1);
         pWaitDstStageMask.put(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         submitInfo.pWaitDstStageMask(pWaitDstStageMask);
-        submitInfo.commandBufferCount(1);
         submitInfo.pCommandBuffers(pCommandBuffers);
-        submitInfo.signalSemaphoreCount(1);
         submitInfo.pSignalSemaphores(pRenderCompleteSemaphore);
 
         // Info struct to present the current swapchain image to the display
         VkPresentInfoKHR presentInfo = VkPresentInfoKHR.calloc();
         presentInfo.sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
         presentInfo.pNext(NULL);
-        presentInfo.waitSemaphoreCount(1);
         presentInfo.pWaitSemaphores(pRenderCompleteSemaphore);
-        presentInfo.swapchainCount(1);
+        presentInfo.swapchainCount(pSwapchains.remaining());
         presentInfo.pSwapchains(pSwapchains);
         presentInfo.pImageIndices(pImageIndex);
         presentInfo.pResults(null);

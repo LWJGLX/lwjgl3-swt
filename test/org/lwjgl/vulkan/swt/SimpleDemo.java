@@ -56,7 +56,6 @@ public class SimpleDemo {
                 .pNext(0L)
                 .pApplicationInfo(appInfo);
         if (ppEnabledExtensionNames.remaining() > 0) {
-            pCreateInfo.enabledExtensionCount(ppEnabledExtensionNames.remaining());
             pCreateInfo.ppEnabledExtensionNames(ppEnabledExtensionNames);
         }
         PointerBuffer pInstance = MemoryUtil.memAllocPointer(1);
