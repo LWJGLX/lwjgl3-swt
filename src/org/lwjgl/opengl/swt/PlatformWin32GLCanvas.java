@@ -34,7 +34,6 @@ import org.lwjgl.opengl.WGLNVMultisampleCoverage;
 import org.lwjgl.opengl.swt.GLData.API;
 import org.lwjgl.opengl.swt.GLData.Profile;
 import org.lwjgl.opengl.swt.GLData.ReleaseBehavior;
-import org.lwjgl.system.APIBuffer;
 import org.lwjgl.system.APIUtil;
 import org.lwjgl.system.APIUtil.APIVersion;
 import org.lwjgl.system.Checks;
@@ -293,7 +292,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             throw new SWTException("Failed to create OpenGL context");
         }
 
-        final APIBuffer buffer = APIUtil.apiBuffer();
+        final APIBuffer buffer = new APIBuffer();
 
         // Save current context to restore it later
         final long currentContext = JNI.callP(wgl.GetCurrentContext);
@@ -874,7 +873,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
     public boolean delayBeforeSwapNV(GLCanvas canvas, float seconds) {
         if (!wglDelayBeforeSwapNVAddr_set) {
-            APIBuffer buffer = APIUtil.apiBuffer();
+            APIBuffer buffer = new APIBuffer();
             int procEncoded = buffer.stringParamASCII("wglDelayBeforeSwapNV", true);
             long adr = buffer.address(procEncoded);
             wglDelayBeforeSwapNVAddr = JNI.callPP(wgl.GetProcAddress, adr);
