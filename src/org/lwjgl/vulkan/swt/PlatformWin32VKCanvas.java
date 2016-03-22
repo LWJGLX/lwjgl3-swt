@@ -1,6 +1,6 @@
 package org.lwjgl.vulkan.swt;
 
-import static org.lwjgl.system.MemoryUtil.*;
+import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.vulkan.KHRWin32Surface.*;
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -32,16 +32,13 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
 
     @Override
     public long create(Composite composite, VKData data) {
-        VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.calloc();
+        VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.callocStack();
         sci.sType(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
         sci.hinstance(OS.GetModuleHandle(null));
         sci.hwnd(composite.handle);
-
-        LongBuffer pSurface = memAllocLong(1);
+        LongBuffer pSurface = stackMallocLong(1);
         int err = vkCreateWin32SurfaceKHR(data.instance, sci, null, pSurface);
         long surface = pSurface.get(0);
-        memFree(pSurface);
-        sci.free();
         if (err != VK_SUCCESS) {
             throw new SWTException("Calling vkCreateWin32SurfaceKHR failed with error: " + err);
         }
