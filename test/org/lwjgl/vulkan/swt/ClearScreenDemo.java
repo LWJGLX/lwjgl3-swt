@@ -8,7 +8,7 @@ import static org.lwjgl.vulkan.KHRXlibSurface.*;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static org.lwjgl.vulkan.VKUtil.translateVulkanResult;
-import static org.lwjgl.vulkan.swt.VkUtil.*;
+import static org.lwjgl.vulkan.VKUtil.*;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -85,6 +85,16 @@ public class ClearScreenDemo {
     };
 
     /**
+     * Remove if added to spec.
+     */
+    private static final int VK_FLAGS_NONE = 0;
+
+    /**
+     * This is just -1L, but it is nicer as a symbolic constant.
+     */
+    private static final long UINT64_MAX = 0xFFFFFFFFFFFFFFFFL;
+
+    /**
      * Create a Vulkan instance using LWJGL 3.
      * 
      * @return the VkInstance handle
@@ -122,7 +132,7 @@ public class ClearScreenDemo {
         long instance = pInstance.get(0);
         memFree(pInstance);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create VkInstance: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create VkInstance: " + translateVulkanResult(err));
         }
         VkInstance ret = new VkInstance(instance, pCreateInfo);
         pCreateInfo.free();
@@ -157,7 +167,7 @@ public class ClearScreenDemo {
         IntBuffer pPhysicalDeviceCount = memAllocInt(1);
         int err = vkEnumeratePhysicalDevices(instance, pPhysicalDeviceCount, null);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get number of physicsl devices: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get number of physicsl devices: " + translateVulkanResult(err));
         }
         PointerBuffer pPhysicalDevices = memAllocPointer(pPhysicalDeviceCount.get(0));
         err = vkEnumeratePhysicalDevices(instance, pPhysicalDeviceCount, pPhysicalDevices);
@@ -165,7 +175,7 @@ public class ClearScreenDemo {
         memFree(pPhysicalDeviceCount);
         memFree(pPhysicalDevices);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get physicsl devices: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get physicsl devices: " + translateVulkanResult(err));
         }
         return new VkPhysicalDevice(physicalDevice, instance);
     }
@@ -249,7 +259,7 @@ public class ClearScreenDemo {
             supportsPresent.position(i);
             int err = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, supportsPresent);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to physical device surface support: " + translateVulkanError(err));
+                throw new AssertionError("Failed to physical device surface support: " + translateVulkanResult(err));
             }
         }
 
@@ -295,13 +305,13 @@ public class ClearScreenDemo {
         int err = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pFormatCount, null);
         int formatCount = pFormatCount.get(0);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to query number of physical device surface formats: " + translateVulkanError(err));
+            throw new AssertionError("Failed to query number of physical device surface formats: " + translateVulkanResult(err));
         }
 
         VkSurfaceFormatKHR.Buffer surfFormats = VkSurfaceFormatKHR.calloc(formatCount);
         err = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, pFormatCount, surfFormats);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to query physical device surface formats: " + translateVulkanError(err));
+            throw new AssertionError("Failed to query physical device surface formats: " + translateVulkanResult(err));
         }
 
         // If the format list includes just one entry of VK_FORMAT_UNDEFINED, the surface has no preferred format. Otherwise, at least one supported format will
@@ -331,7 +341,7 @@ public class ClearScreenDemo {
         cmdPoolInfo.free();
         memFree(pCmdPool);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create command pool: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create command pool: " + translateVulkanResult(err));
         }
         return commandPool;
     }
@@ -353,7 +363,7 @@ public class ClearScreenDemo {
         PointerBuffer pCommandBuffer = memAllocPointer(1);
         int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to allocate command buffer: " + translateVulkanError(err));
+            throw new AssertionError("Failed to allocate command buffer: " + translateVulkanResult(err));
         }
         VkCommandBuffer commandBuffer = new VkCommandBuffer(pCommandBuffer.get(0), device);
         cmdBufAllocateInfo.free();
@@ -465,21 +475,21 @@ public class ClearScreenDemo {
         VkSurfaceCapabilitiesKHR surfCaps = VkSurfaceCapabilitiesKHR.calloc();
         err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, surfCaps);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get physical device surface capabilities: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get physical device surface capabilities: " + translateVulkanResult(err));
         }
 
         IntBuffer pPresentModeCount = memAllocInt(1);
         err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, null);
         int presentModeCount = pPresentModeCount.get(0);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get number of physical device surface presentation modes: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get number of physical device surface presentation modes: " + translateVulkanResult(err));
         }
 
         IntBuffer pPresentModes = memAllocInt(presentModeCount);
         err = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
         memFree(pPresentModeCount);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get physical device surface presentation modes: " + translateVulkanResult(err));
         }
 
         // Try to use mailbox mode. Low latency and non-tearing
@@ -535,7 +545,7 @@ public class ClearScreenDemo {
         long swapChain = pSwapChain.get(0);
         memFree(pSwapChain);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create swap chain: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create swap chain: " + translateVulkanResult(err));
         }
 
         // If we just re-created an existing swapchain, we should destroy the old swapchain at this point.
@@ -548,13 +558,13 @@ public class ClearScreenDemo {
         err = vkGetSwapchainImagesKHR(device, swapChain, pImageCount, null);
         int imageCount = pImageCount.get(0);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get number of swapchain images: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get number of swapchain images: " + translateVulkanResult(err));
         }
 
         LongBuffer pSwapchainImages = memAllocLong(imageCount);
         err = vkGetSwapchainImagesKHR(device, swapChain, pImageCount, pSwapchainImages);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to get swapchain images: " + translateVulkanError(err));
+            throw new AssertionError("Failed to get swapchain images: " + translateVulkanResult(err));
         }
         memFree(pImageCount);
 
@@ -586,7 +596,7 @@ public class ClearScreenDemo {
             err = vkCreateImageView(device, colorAttachmentView, null, pBufferView);
             imageViews[i] = pBufferView.get(0);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to create image view: " + translateVulkanError(err));
+                throw new AssertionError("Failed to create image view: " + translateVulkanResult(err));
             }
         }
         colorAttachmentView.free();
@@ -641,7 +651,7 @@ public class ClearScreenDemo {
         subpass.free();
         attachments.free();
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to create clear render pass: " + translateVulkanError(err));
+            throw new AssertionError("Failed to create clear render pass: " + translateVulkanResult(err));
         }
         return renderPass;
     }
@@ -665,7 +675,7 @@ public class ClearScreenDemo {
             int err = vkCreateFramebuffer(device, fci, null, pFramebuffer);
             long framebuffer = pFramebuffer.get(0);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to create framebuffer: " + translateVulkanError(err));
+                throw new AssertionError("Failed to create framebuffer: " + translateVulkanResult(err));
             }
             framebuffers[i] = framebuffer;
         }
@@ -687,7 +697,7 @@ public class ClearScreenDemo {
         memFree(pCommandBuffers);
         submitInfo.free();
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to submit command buffer: " + translateVulkanError(err));
+            throw new AssertionError("Failed to submit command buffer: " + translateVulkanResult(err));
         }
     }
 
@@ -701,7 +711,7 @@ public class ClearScreenDemo {
         PointerBuffer pCommandBuffer = memAllocPointer(framebuffers.length);
         int err = vkAllocateCommandBuffers(device, cmdBufAllocateInfo, pCommandBuffer);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to allocate render command buffer: " + translateVulkanError(err));
+            throw new AssertionError("Failed to allocate render command buffer: " + translateVulkanResult(err));
         }
         VkCommandBuffer[] renderCommandBuffers = new VkCommandBuffer[framebuffers.length];
         for (int i = 0; i < framebuffers.length; i++) {
@@ -743,7 +753,7 @@ public class ClearScreenDemo {
 
             err = vkBeginCommandBuffer(renderCommandBuffers[i], cmdBufInfo);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to begin render command buffer: " + translateVulkanError(err));
+                throw new AssertionError("Failed to begin render command buffer: " + translateVulkanResult(err));
             }
 
             vkCmdBeginRenderPass(renderCommandBuffers[i], renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -785,7 +795,7 @@ public class ClearScreenDemo {
 
             err = vkEndCommandBuffer(renderCommandBuffers[i]);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to begin render command buffer: " + translateVulkanError(err));
+                throw new AssertionError("Failed to begin render command buffer: " + translateVulkanResult(err));
             }
         }
         renderPassBeginInfo.free();
@@ -841,7 +851,7 @@ public class ClearScreenDemo {
         int err = vkBeginCommandBuffer(commandBuffer, cmdBufInfo);
         cmdBufInfo.free();
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to begin command buffer: " + translateVulkanError(err));
+            throw new AssertionError("Failed to begin command buffer: " + translateVulkanResult(err));
         }
 
         VkImageMemoryBarrier.Buffer postPresentBarrier = createPostPresentBarrier(image);
@@ -857,7 +867,7 @@ public class ClearScreenDemo {
 
         err = vkEndCommandBuffer(commandBuffer);
         if (err != VK_SUCCESS) {
-            throw new AssertionError("Failed to wait for idle queue: " + translateVulkanError(err));
+            throw new AssertionError("Failed to wait for idle queue: " + translateVulkanResult(err));
         }
 
         // Submit the command buffer
@@ -929,7 +939,7 @@ public class ClearScreenDemo {
                 int err = vkBeginCommandBuffer(setupCommandBuffer, cmdBufInfo);
                 cmdBufInfo.free();
                 if (err != VK_SUCCESS) {
-                    throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanError(err));
+                    throw new AssertionError("Failed to begin setup command buffer: " + translateVulkanResult(err));
                 }
                 long oldChain = swapchain != null ? swapchain.swapchainHandle : VK_NULL_HANDLE;
                 // Create the swapchain (this will also add a memory barrier to initialize the framebuffer images)
@@ -937,7 +947,7 @@ public class ClearScreenDemo {
                         canvas.getSize().x, canvas.getSize().y, colorFormatAndSpace.colorFormat, colorFormatAndSpace.colorSpace);
                 err = vkEndCommandBuffer(setupCommandBuffer);
                 if (err != VK_SUCCESS) {
-                    throw new AssertionError("Failed to end setup command buffer: " + translateVulkanError(err));
+                    throw new AssertionError("Failed to end setup command buffer: " + translateVulkanResult(err));
                 }
                 submitCommandBuffer(queue, setupCommandBuffer);
                 vkQueueWaitIdle(queue);
@@ -1003,13 +1013,13 @@ public class ClearScreenDemo {
             // Create a semaphore to wait for the swapchain to acquire the next image
             err = vkCreateSemaphore(device, semaphoreCreateInfo, null, pImageAcquiredSemaphore);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to create image acquired semaphore: " + translateVulkanError(err));
+                throw new AssertionError("Failed to create image acquired semaphore: " + translateVulkanResult(err));
             }
 
             // Create a semaphore to wait for the render to complete, before presenting
             err = vkCreateSemaphore(device, semaphoreCreateInfo, null, pRenderCompleteSemaphore);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to create render complete semaphore: " + translateVulkanError(err));
+                throw new AssertionError("Failed to create render complete semaphore: " + translateVulkanResult(err));
             }
 
             // Get next image from the swap chain (back/front buffer).
@@ -1017,7 +1027,7 @@ public class ClearScreenDemo {
             err = vkAcquireNextImageKHR(device, swapchain.swapchainHandle, UINT64_MAX, pImageAcquiredSemaphore.get(0), VK_NULL_HANDLE, pImageIndex);
             currentBuffer = pImageIndex.get(0);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanError(err));
+                throw new AssertionError("Failed to acquire next swapchain image: " + translateVulkanResult(err));
             }
 
             // Select the command buffer for the current framebuffer image/attachment
@@ -1026,7 +1036,7 @@ public class ClearScreenDemo {
             // Submit to the graphics queue
             err = vkQueueSubmit(queue, submitInfo, VK_NULL_HANDLE);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to submit render queue: " + translateVulkanError(err));
+                throw new AssertionError("Failed to submit render queue: " + translateVulkanResult(err));
             }
 
             // Present the current buffer to the swap chain
@@ -1034,7 +1044,7 @@ public class ClearScreenDemo {
             pSwapchains.put(0, swapchain.swapchainHandle);
             err = vkQueuePresentKHR(queue, presentInfo);
             if (err != VK_SUCCESS) {
-                throw new AssertionError("Failed to present the swapchain image: " + translateVulkanError(err));
+                throw new AssertionError("Failed to present the swapchain image: " + translateVulkanResult(err));
             }
             // Destroy this semaphore (we will create a new one in the next frame)
             vkDestroySemaphore(device, pImageAcquiredSemaphore.get(0), null);

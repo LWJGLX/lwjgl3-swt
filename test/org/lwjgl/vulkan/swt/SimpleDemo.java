@@ -5,7 +5,7 @@ import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRWin32Surface.*;
 import static org.lwjgl.vulkan.KHRXlibSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
-import static org.lwjgl.vulkan.swt.VkUtil.*;
+import static org.lwjgl.vulkan.VKUtil.*;
 
 import java.nio.ByteBuffer;
 
@@ -30,7 +30,7 @@ import org.lwjgl.vulkan.VkInstanceCreateInfo;
  */
 public class SimpleDemo {
 
-    /**
+	/**
      * Create a Vulkan instance using LWJGL 3.
      * 
      * @return the VkInstance handle
@@ -61,7 +61,7 @@ public class SimpleDemo {
         PointerBuffer pInstance = MemoryUtil.memAllocPointer(1);
         int err = vkCreateInstance(pCreateInfo, null, pInstance);
         if (err != VK_SUCCESS) {
-            throw new RuntimeException("Failed to create VkInstance: " + translateVulkanError(err));
+            throw new RuntimeException("Failed to create VkInstance: " + translateVulkanResult(err));
         }
         long instance = pInstance.get(0);
         memFree(pInstance);
