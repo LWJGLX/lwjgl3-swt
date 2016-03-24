@@ -32,10 +32,10 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
 
     @Override
     public long create(Composite composite, VKData data) {
-        VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.callocStack();
-        sci.sType(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
-        sci.hinstance(OS.GetModuleHandle(null));
-        sci.hwnd(composite.handle);
+        VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.callocStack()
+		        .sType(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR)
+		        .hinstance(OS.GetModuleHandle(null))
+		        .hwnd(composite.handle);
         LongBuffer pSurface = stackMallocLong(1);
         int err = vkCreateWin32SurfaceKHR(data.instance, sci, null, pSurface);
         long surface = pSurface.get(0);

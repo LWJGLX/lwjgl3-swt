@@ -107,13 +107,13 @@ public class ClearScreenDemo {
             VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
         else
             VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3);
-        ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
-        ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);
-        ppEnabledExtensionNames.put(VK_EXT_DEBUG_REPORT_EXTENSION);
-        ppEnabledExtensionNames.flip();
+        PointerBuffer ppEnabledExtensionNames = memAllocPointer(3)
+		        .put(VK_KHR_SURFACE_EXTENSION)
+		        .put(VK_KHR_OS_SURFACE_EXTENSION)
+		        .put(VK_EXT_DEBUG_REPORT_EXTENSION)
+		        .flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
-        for (int i = 0; i < layers.length; i++)
+        for (int i = 0; validation && i < layers.length; i++)
             ppEnabledLayerNames.put(layers[i]);
         ppEnabledLayerNames.flip();
         VkInstanceCreateInfo pCreateInfo = VkInstanceCreateInfo.calloc()
