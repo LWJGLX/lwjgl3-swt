@@ -876,7 +876,7 @@ public class ClearScreenDemo {
         final long renderCommandPool = createCommandPool(device, queueFamilyIndex);
 
         final class SwapchainRecreator {
-            boolean mustRecreate = true;
+            boolean mustRecreate;
             int width;
             int height;
 
@@ -922,6 +922,7 @@ public class ClearScreenDemo {
 					return;
 				swapchainRecreator.width = canvas.getSize().x;
 				swapchainRecreator.height = canvas.getSize().y;
+				swapchainRecreator.mustRecreate = true;
 			}
 		});
         int dw = shell.getSize().x - shell.getClientArea().width;
