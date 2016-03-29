@@ -233,7 +233,7 @@ public class APIBuffer {
 	public int pointerArrayParamASCII(CharSequence... strings) {
 		int buffersAddress = bufferParam(strings.length << POINTER_SHIFT);
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeASCII(strings[i], true, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memASCII(strings[i], true);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 		}
@@ -254,7 +254,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << 2);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeASCII(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memASCII(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			intParam(lengthsAddress, i, buffer.remaining());
@@ -276,7 +276,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << POINTER_SHIFT);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeASCII(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memASCII(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			pointerParam(lengthsAddress, i, buffer.remaining());
@@ -295,7 +295,7 @@ public class APIBuffer {
 	public int pointerArrayParamUTF8(CharSequence... strings) {
 		int buffersAddress = bufferParam(strings.length << POINTER_SHIFT);
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF8(strings[i], true, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF8(strings[i], true);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 		}
@@ -316,7 +316,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << 2);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF8(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF8(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			intParam(lengthsAddress, i, buffer.remaining());
@@ -338,7 +338,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << POINTER_SHIFT);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF8(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF8(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			pointerParam(lengthsAddress, i, buffer.remaining());
@@ -357,7 +357,7 @@ public class APIBuffer {
 	public int pointerArrayParamUTF16(CharSequence... strings) {
 		int buffersAddress = bufferParam(strings.length << POINTER_SHIFT);
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF16(strings[i], true, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF16(strings[i], true);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 		}
@@ -378,7 +378,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << 2);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF16(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF16(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			intParam(lengthsAddress, i, buffer.remaining());
@@ -400,7 +400,7 @@ public class APIBuffer {
 		int lengthsAddress = bufferParam(strings.length << POINTER_SHIFT);
 
 		for ( int i = 0; i < strings.length; i++ ) {
-			ByteBuffer buffer = memEncodeUTF16(strings[i], false, BufferAllocator.MALLOC);
+			ByteBuffer buffer = memUTF16(strings[i], false);
 
 			pointerParam(buffersAddress, i, memAddress(buffer));
 			pointerParam(lengthsAddress, i, buffer.remaining());
@@ -437,7 +437,7 @@ public class APIBuffer {
 			return -1;
 
 		int offset = bufferParam(value.length() + (nullTerminated ? 1 : 0));
-		memEncodeASCII(value, nullTerminated, buffer, offset);
+		memASCII(value, nullTerminated, buffer, offset);
 		return offset;
 	}
 
@@ -446,9 +446,9 @@ public class APIBuffer {
 		if ( value == null )
 			return -1;
 
-		int encodedLen = memEncodedLengthUTF8(value);
+		int encodedLen = memLengthUTF8(value, nullTerminated);
 		int offset = bufferParam(encodedLen + (nullTerminated ? 1 : 0));
-		memEncodeUTF8(value, nullTerminated, buffer, offset);
+		memUTF8(value, nullTerminated, buffer, offset);
 		return offset;
 	}
 
@@ -458,7 +458,7 @@ public class APIBuffer {
 			return -1;
 
 		int offset = bufferParam((value.length() + (nullTerminated ? 1 : 0)) << 1);
-		memEncodeUTF16(value, nullTerminated, buffer, offset);
+		memUTF16(value, nullTerminated, buffer, offset);
 		return offset;
 	}
 
@@ -493,7 +493,7 @@ public class APIBuffer {
 		buffer.position(offset);
 		buffer.limit(limit);
 		try {
-			return memDecodeASCII(buffer);
+			return memASCII(buffer);
 		} finally {
 			buffer.clear();
 		}
@@ -504,7 +504,7 @@ public class APIBuffer {
 		buffer.position(offset);
 		buffer.limit(limit);
 		try {
-			return memDecodeUTF8(buffer);
+			return memUTF8(buffer);
 		} finally {
 			buffer.clear();
 		}
@@ -515,7 +515,7 @@ public class APIBuffer {
 		buffer.position(offset);
 		buffer.limit(limit);
 		try {
-			return memDecodeUTF16(buffer);
+			return memUTF16(buffer);
 		} finally {
 			buffer.clear();
 		}

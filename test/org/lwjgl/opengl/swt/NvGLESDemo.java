@@ -55,8 +55,8 @@ public class NvGLESDemo {
 		// From: http://bedroomcoders.co.uk/gles2-0-everywhere-thanks-to-lwjgl3/
 		if (Platform.get() == Platform.WINDOWS ) {
 			// pretend we're using GLES in windows, instead use a subset of OpenGL 2.0 as GLES 2.0
-			Configuration.LIBRARY_NAME_OPENGLES.set("OpenGL32");
-			Configuration.EXPLICIT_INIT_OPENGLES.set(true);
+			Configuration.OPENGLES_LIBRARY_NAME.set("OpenGL32");
+			Configuration.OPENGLES_EXPLICIT_INIT.set(true);
 			org.lwjgl.opengles.GLES.create(org.lwjgl.opengl.GL.getFunctionProvider()); // omg?!
 		}
 

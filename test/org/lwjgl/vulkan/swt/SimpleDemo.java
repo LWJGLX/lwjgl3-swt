@@ -17,7 +17,6 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryUtil;
-import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.system.Platform;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkInstance;
@@ -38,15 +37,15 @@ public class SimpleDemo {
     private static VkInstance createInstance() {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                .pApplicationName("SWT Vulkan Demo")
-                .pEngineName("")
+                .pApplicationName(memUTF8("SWT Vulkan Demo"))
+                .pEngineName(memUTF8(""))
                 .apiVersion(VK_MAKE_VERSION(1, 0, 2));
-        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_SURFACE_EXTENSION = memUTF8(VK_KHR_SURFACE_EXTENSION_NAME);
         ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
         if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memUTF8(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
         else
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memUTF8(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(2);
         ppEnabledExtensionNames.put(VK_KHR_SURFACE_EXTENSION);
         ppEnabledExtensionNames.put(VK_KHR_OS_SURFACE_EXTENSION);

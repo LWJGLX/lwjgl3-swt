@@ -4,7 +4,6 @@
  */
 package org.lwjgl.vulkan.swt;
 
-
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.EXTDebugReport.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -29,7 +28,6 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.system.MemoryUtil.BufferAllocator;
 import org.lwjgl.system.Platform;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
@@ -74,7 +72,7 @@ public class ClearScreenDemo {
     private static final boolean validation = Boolean.parseBoolean(System.getProperty("vulkan.validation", "false"));
 
     private static ByteBuffer[] layers = {
-            memEncodeASCII("VK_LAYER_LUNARG_standard_validation", BufferAllocator.MALLOC),
+            memUTF8("VK_LAYER_LUNARG_standard_validation"),
     };
 
     /**
@@ -97,16 +95,16 @@ public class ClearScreenDemo {
     private static VkInstance createInstance() {
         VkApplicationInfo appInfo = VkApplicationInfo.calloc()
                 .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-                .pApplicationName("SWT Vulkan Demo")
-                .pEngineName("")
+                .pApplicationName(memUTF8("SWT Vulkan Demo"))
+                .pEngineName(memUTF8(""))
                 .apiVersion(VK_MAKE_VERSION(1, 0, 2));
-        ByteBuffer VK_KHR_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
-        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memEncodeASCII(VK_EXT_DEBUG_REPORT_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_SURFACE_EXTENSION = memUTF8(VK_KHR_SURFACE_EXTENSION_NAME);
+        ByteBuffer VK_EXT_DEBUG_REPORT_EXTENSION = memUTF8(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         ByteBuffer VK_KHR_OS_SURFACE_EXTENSION;
         if (Platform.get() == Platform.WINDOWS)
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_WIN32_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memUTF8(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
         else
-            VK_KHR_OS_SURFACE_EXTENSION = memEncodeASCII(VK_KHR_XLIB_SURFACE_EXTENSION_NAME, BufferAllocator.MALLOC);
+            VK_KHR_OS_SURFACE_EXTENSION = memUTF8(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
         PointerBuffer ppEnabledExtensionNames = memAllocPointer(3)
 		        .put(VK_KHR_SURFACE_EXTENSION)
 		        .put(VK_KHR_OS_SURFACE_EXTENSION)
@@ -210,7 +208,7 @@ public class ClearScreenDemo {
                 .pQueuePriorities(pQueuePriorities);
 
         PointerBuffer extensions = memAllocPointer(1);
-        ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memEncodeASCII(VK_KHR_SWAPCHAIN_EXTENSION_NAME, BufferAllocator.MALLOC);
+        ByteBuffer VK_KHR_SWAPCHAIN_EXTENSION = memUTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         extensions.put(VK_KHR_SWAPCHAIN_EXTENSION);
         extensions.flip();
         PointerBuffer ppEnabledLayerNames = memAllocPointer(layers.length);
@@ -836,7 +834,7 @@ public class ClearScreenDemo {
 
         final VkDebugReportCallbackEXT debugCallback = new VkDebugReportCallbackEXT() {
             public int invoke(int flags, int objectType, long object, long location, int messageCode, long pLayerPrefix, long pMessage, long pUserData) {
-                System.err.println("ERROR OCCURED: " + memDecodeASCII(pMessage));
+                System.err.println("ERROR OCCURED: " + getString(pMessage));
                 return 0;
             }
         };
