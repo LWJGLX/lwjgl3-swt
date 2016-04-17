@@ -926,7 +926,7 @@ public class ClearScreenDemo {
         int dw = shell.getSize().x - shell.getClientArea().width;
         int dh = shell.getSize().y - shell.getClientArea().height;
         shell.setSize(800 + dw, 600 + dh);
-        shell.setVisible(true);
+        shell.open();
 
         // Pre-allocate everything needed in the render loop
 
