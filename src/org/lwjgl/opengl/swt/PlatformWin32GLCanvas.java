@@ -266,7 +266,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         pfd.cAccumBits((byte) (attribs.accumRedSize + attribs.accumGreenSize + attribs.accumBlueSize + attribs.accumAlphaSize));
         long hDCdummy = User32.GetDC(dummyWindowHandle);
         int pixelFormat = GDI32.ChoosePixelFormat(hDCdummy, pfd);
-        if (pixelFormat == 0 || GDI32.SetPixelFormat(hDCdummy, pixelFormat, pfd) == 0) {
+        if (pixelFormat == 0 || !GDI32.SetPixelFormat(hDCdummy, pixelFormat, pfd)) {
             // Pixel format unsupported
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
             throw new SWTException("Unsupported pixel format");
@@ -290,8 +290,8 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         final long currentDc = WGL.wglGetCurrentDC();
 
         // Make the new dummy context current
-        int success = WGL.wglMakeCurrent(hDCdummy, dummyContext);
-        if (success == 0) {
+        boolean success = WGL.wglMakeCurrent(hDCdummy, dummyContext);
+        if (!success) {
             User32.ReleaseDC(dummyWindowHandle, hDCdummy);
             WGL.wglDeleteContext(dummyContext);
             throw new SWTException("Failed to make OpenGL context current");
@@ -326,8 +326,8 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         for (String str : splitted) {
             wglExtensionsList.add(str);
         }
-        success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
-        if (success == 0) {
+        success = User32.ReleaseDC(dummyWindowHandle, hDCdummy) == 1;
+        if (!success) {
             WGL.wglDeleteContext(dummyContext);
             WGL.wglMakeCurrent(currentDc, currentContext);
             throw new SWTException("Could not release dummy DC");
@@ -340,7 +340,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             long hDC = User32.GetDC(windowHandle);
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
             success = WGL.wglDeleteContext(dummyContext);
-            if (success == 0) {
+            if (!success) {
                 WGL.wglMakeCurrent(currentDc, currentContext);
                 throw new SWTException("Could not delete dummy GL context");
             }
@@ -364,14 +364,14 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 }
                 // Make context current to set the swap interval
                 success = WGL.wglMakeCurrent(hDC, context);
-                if (success == 0) {
+                if (!success) {
                     User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
                     throw new SWTException("Could not make GL context current");
                 }
                 long wglSwapIntervalEXTAddr = WGL.wglGetProcAddress("wglSwapIntervalEXT");
                 if (wglSwapIntervalEXTAddr != 0L) {
-                    JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
+                    JNI.callI(wglSwapIntervalEXTAddr, attribs.swapInterval);
                 }
             }
 
@@ -394,8 +394,8 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 }
             }
 
-            success = User32.ReleaseDC(windowHandle, hDC);
-            if (success == 0) {
+            success = User32.ReleaseDC(windowHandle, hDC) == 1;
+            if (!success) {
             	WGL.wglMakeCurrent(currentDc, currentContext);
                 WGL.wglDeleteContext(context);
                 throw new SWTException("Could not release DC");
@@ -404,7 +404,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             /* Check if we want to share context */
             if (attribs.shareContext != null) {
                 success = WGL.wglShareLists(context, attribs.shareContext.context);
-                if (success == 0) {
+                if (!success) {
                     WGL.wglMakeCurrent(currentDc, currentContext);
                     WGL.wglDeleteContext(context);
                     throw new SWTException("Failed while configuring context sharing.");
@@ -511,9 +511,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             }
             // Query matching pixel formats
             encodePixelFormatAttribs(attribList, attribs);
-            success = JNI.callPPPIPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, buffer.address() + 4, buffer.address());
+            success = JNI.callPPPPPI(wglChoosePixelFormatAddr, hDC, attribListAddr, 0L, 1, buffer.address() + 4, buffer.address()) == 1;
             int numFormats = buffer.buffer().getInt(0);
-            if (success == 0 || numFormats == 0) {
+            if (!success || numFormats == 0) {
                 User32.ReleaseDC(windowHandle, hDC);
                 WGL.wglDeleteContext(dummyContext);
                 WGL.wglMakeCurrent(currentDc, currentContext);
@@ -556,9 +556,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             attribList.put(WGLARBPixelFormat.WGL_STENCIL_BITS_ARB);
             IntBuffer attribValues = BufferUtils.createIntBuffer(attribList.position());
             long attribValuesAddr = MemoryUtil.memAddress(attribValues);
-            success = JNI.callPIIIPPI(wglGetPixelFormatAttribivAddr, hDC, pixelFormat, GDI32.PFD_MAIN_PLANE, attribList.position(), attribListAddr,
-                    attribValuesAddr);
-            if (success == 0) {
+            success = JNI.callPPPI(wglGetPixelFormatAttribivAddr, hDC, pixelFormat, GDI32.PFD_MAIN_PLANE, attribList.position(), attribListAddr,
+                    attribValuesAddr) == 1;
+            if (!success) {
                 User32.ReleaseDC(windowHandle, hDC);
                 WGL.wglDeleteContext(dummyContext);
                 WGL.wglMakeCurrent(currentDc, currentContext);
@@ -668,8 +668,8 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         attribList.put(0).put(0);
         // Set pixelformat
-        int succ = GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
-        if (succ == 0) {
+        success = GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
+        if (!success) {
             User32.ReleaseDC(windowHandle, hDC);
             WGL.wglDeleteContext(dummyContext);
             WGL.wglMakeCurrent(currentDc, currentContext);
@@ -705,7 +705,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             }
             long wglSwapIntervalEXTAddr = WGL.wglGetProcAddress("wglSwapIntervalEXT");
             if (wglSwapIntervalEXTAddr != 0L) {
-                JNI.callII(wglSwapIntervalEXTAddr, attribs.swapInterval);
+                JNI.callI(wglSwapIntervalEXTAddr, attribs.swapInterval);
             }
         }
         if (attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) {
@@ -731,26 +731,26 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         long getString = GL.getFunctionProvider().getFunctionAddress("glGetString");
         effective.api = attribs.api;
         if (atLeast30(attribs.majorVersion, attribs.minorVersion)) {
-            JNI.callIPV(getInteger, GL30.GL_MAJOR_VERSION, buffer.address());
+            JNI.callPV(getInteger, GL30.GL_MAJOR_VERSION, buffer.address());
             effective.majorVersion = buffer.intValue(0);
-            JNI.callIPV(getInteger, GL30.GL_MINOR_VERSION, buffer.address());
+            JNI.callPV(getInteger, GL30.GL_MINOR_VERSION, buffer.address());
             effective.minorVersion = buffer.intValue(0);
-            JNI.callIPV(getInteger, GL30.GL_CONTEXT_FLAGS, buffer.address());
+            JNI.callPV(getInteger, GL30.GL_CONTEXT_FLAGS, buffer.address());
             int effectiveContextFlags = buffer.intValue(0);
             effective.debug = (effectiveContextFlags & GL43.GL_CONTEXT_FLAG_DEBUG_BIT) != 0;
             effective.forwardCompatible = (effectiveContextFlags & GL30.GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT) != 0;
             effective.robustness = (effectiveContextFlags & ARBRobustness.GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB) != 0;
         } else if (attribs.api == API.GL) {
-            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memUTF8(Checks.checkPointer(JNI.callIP(getString, GL11.GL_VERSION))));
+            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memUTF8(Checks.checkPointer(JNI.callP(getString, GL11.GL_VERSION))));
             effective.majorVersion = version.major;
             effective.minorVersion = version.minor;
         } else if (attribs.api == API.GLES) {
-            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memUTF8(Checks.checkPointer(JNI.callIP(getString, GL11.GL_VERSION))), "OpenGL ES");
+            APIVersion version = APIUtil.apiParseVersion(MemoryUtil.memUTF8(Checks.checkPointer(JNI.callP(getString, GL11.GL_VERSION))), "OpenGL ES");
             effective.majorVersion = version.major;
             effective.minorVersion = version.minor;
         }
         if (attribs.api == API.GL && atLeast32(effective.majorVersion, effective.minorVersion)) {
-            JNI.callIPV(getInteger, GL32.GL_CONTEXT_PROFILE_MASK, buffer.address());
+            JNI.callPV(getInteger, GL32.GL_CONTEXT_PROFILE_MASK, buffer.address());
             int effectiveProfileMask = buffer.intValue(0);
             boolean core = (effectiveProfileMask & GL32.GL_CONTEXT_CORE_PROFILE_BIT) != 0;
             boolean comp = (effectiveProfileMask & GL32.GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) != 0;
@@ -763,13 +763,13 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             }
         }
         if (attribs.samples >= 1) {
-            JNI.callIPV(getInteger, ARBMultisample.GL_SAMPLES_ARB, buffer.address());
+            JNI.callPV(getInteger, ARBMultisample.GL_SAMPLES_ARB, buffer.address());
             effective.samples = buffer.intValue(0);
-            JNI.callIPV(getInteger, ARBMultisample.GL_SAMPLE_BUFFERS_ARB, buffer.address());
+            JNI.callPV(getInteger, ARBMultisample.GL_SAMPLE_BUFFERS_ARB, buffer.address());
             effective.sampleBuffers = buffer.intValue(0);
             boolean has_WGL_NV_multisample_coverage = wglExtensionsList.contains("WGL_NV_multisample_coverage");
             if (has_WGL_NV_multisample_coverage) {
-                JNI.callIPV(getInteger, NVMultisampleCoverage.GL_COLOR_SAMPLES_NV, buffer.address());
+                JNI.callPV(getInteger, NVMultisampleCoverage.GL_COLOR_SAMPLES_NV, buffer.address());
                 effective.colorSamplesNV = buffer.intValue(0);
             }
         }
@@ -795,7 +795,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             if (wglJoinSwapGroupNVAddr == 0L) {
                 throw new SWTException("WGL_NV_swap_group available but wglJoinSwapGroupNV is NULL");
             }
-            success = JNI.callPII(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
+            success = JNI.callPI(wglJoinSwapGroupNVAddr, hDC, attribs.swapGroupNV);
             if (success == 0) {
                 throw new SWTException("Failed to join swap group");
             }
@@ -804,7 +804,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 if (wglBindSwapBarrierNVAddr == 0L) {
                     throw new SWTException("WGL_NV_swap_group available but wglBindSwapBarrierNV is NULL");
                 }
-                success = JNI.callIII(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
+                success = JNI.callI(wglBindSwapBarrierNVAddr, attribs.swapGroupNV, attribs.swapBarrierNV);
                 if (success == 0) {
                     throw new SWTException("Failed to bind swap barrier. Probably no G-Sync card installed.");
                 }
@@ -819,21 +819,21 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
 
     public boolean makeCurrent(GLCanvas canvas, long context) {
         long hDC = User32.GetDC(canvas.handle);
-        int ret = WGL.wglMakeCurrent(hDC, context);
+        boolean ret = WGL.wglMakeCurrent(hDC, context);
         User32.ReleaseDC(canvas.handle, hDC);
-        return ret == 1;
+        return ret;
     }
 
     public boolean deleteContext(long context) {
-        int ret = WGL.wglDeleteContext(context);
-        return ret == 1;
+        boolean ret = WGL.wglDeleteContext(context);
+        return ret;
     }
 
     public boolean swapBuffers(GLCanvas canvas) {
         long hDC = User32.GetDC(canvas.handle);
-        int ret = GDI32.SwapBuffers(hDC);
+        boolean ret = GDI32.SwapBuffers(hDC);
         User32.ReleaseDC(canvas.handle, hDC);
-        return ret == 1;
+        return ret;
     }
 
     public boolean delayBeforeSwapNV(GLCanvas canvas, float seconds) {
@@ -845,7 +845,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             throw new UnsupportedOperationException("wglDelayBeforeSwapNV is unavailable");
         }
         long hDC = User32.GetDC(canvas.handle);
-        int ret = JNI.callPFI(wglDelayBeforeSwapNVAddr, hDC, seconds);
+        int ret = JNI.callPI(wglDelayBeforeSwapNVAddr, hDC, seconds);
         User32.ReleaseDC(canvas.handle, hDC);
         return ret == 1;
     }
