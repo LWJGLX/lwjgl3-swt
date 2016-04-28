@@ -326,7 +326,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         for (String str : splitted) {
             wglExtensionsList.add(str);
         }
-        success = User32.ReleaseDC(dummyWindowHandle, hDCdummy) == 1;
+        success = User32.ReleaseDC(dummyWindowHandle, hDCdummy);
         if (!success) {
             WGL.wglDeleteContext(dummyContext);
             WGL.wglMakeCurrent(currentDc, currentContext);
@@ -394,7 +394,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 }
             }
 
-            success = User32.ReleaseDC(windowHandle, hDC) == 1;
+            success = User32.ReleaseDC(windowHandle, hDC);
             if (!success) {
             	WGL.wglMakeCurrent(currentDc, currentContext);
                 WGL.wglDeleteContext(context);
