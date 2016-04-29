@@ -341,6 +341,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             GDI32.SetPixelFormat(hDC, pixelFormat, pfd);
             success = WGL.wglDeleteContext(dummyContext);
             if (!success) {
+                User32.ReleaseDC(windowHandle, hDC);
                 WGL.wglMakeCurrent(currentDc, currentContext);
                 throw new SWTException("Could not delete dummy GL context");
             }
@@ -351,6 +352,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 if (!has_WGL_EXT_swap_control) {
                     User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
+                    WGL.wglDeleteContext(context);
                     throw new SWTException("Swap interval requested but WGL_EXT_swap_control is unavailable");
                 }
                 if (attribs.swapInterval < 0) {
@@ -359,6 +361,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                     if (!has_WGL_EXT_swap_control_tear) {
                         User32.ReleaseDC(windowHandle, hDC);
                         WGL.wglMakeCurrent(currentDc, currentContext);
+                        WGL.wglDeleteContext(context);
                         throw new SWTException("Negative swap interval requested but WGL_EXT_swap_control_tear is unavailable");
                     }
                 }
@@ -367,6 +370,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 if (!success) {
                     User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
+                    WGL.wglDeleteContext(context);
                     throw new SWTException("Could not make GL context current");
                 }
                 long wglSwapIntervalEXTAddr = WGL.wglGetProcAddress("wglSwapIntervalEXT");
@@ -381,6 +385,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 if (!has_WGL_NV_swap_group) {
                     User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
+                    WGL.wglDeleteContext(context);
                     throw new SWTException("Swap group or barrier requested but WGL_NV_swap_group is unavailable");
                 }
                 // Make context current to join swap group and/or barrier
@@ -390,33 +395,35 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
                 } catch (SWTException e) {
                     User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
+                    WGL.wglDeleteContext(context);
                     throw e;
                 }
-            }
-
-            success = User32.ReleaseDC(windowHandle, hDC);
-            if (!success) {
-            	WGL.wglMakeCurrent(currentDc, currentContext);
-                WGL.wglDeleteContext(context);
-                throw new SWTException("Could not release DC");
             }
 
             /* Check if we want to share context */
             if (attribs.shareContext != null) {
                 success = WGL.wglShareLists(context, attribs.shareContext.context);
                 if (!success) {
+                	User32.ReleaseDC(windowHandle, hDC);
                     WGL.wglMakeCurrent(currentDc, currentContext);
                     WGL.wglDeleteContext(context);
-                    throw new SWTException("Failed while configuring context sharing.");
+                    throw new SWTException("Failed while configuring context sharing");
                 }
             }
 
             // Describe pixel format
             int pixFmtIndex = GDI32.DescribePixelFormat(hDC, pixelFormat, pfd);
             if (pixFmtIndex == 0) {
+            	User32.ReleaseDC(windowHandle, hDC);
                 WGL.wglMakeCurrent(currentDc, currentContext);
                 WGL.wglDeleteContext(context);
-                throw new SWTException("Failed to describe pixel format.");
+                throw new SWTException("Failed to describe pixel format");
+            }
+            success = User32.ReleaseDC(windowHandle, hDC);
+            if (!success) {
+                WGL.wglMakeCurrent(currentDc, currentContext);
+                WGL.wglDeleteContext(context);
+                throw new SWTException("Could not release DC");
             }
             effective.redSize = pfd.cRedBits();
             effective.greenSize = pfd.cGreenBits();
