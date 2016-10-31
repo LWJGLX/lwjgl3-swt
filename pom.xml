@@ -5,7 +5,7 @@
 	<artifactId>lwjgl3-swt</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
-		<lwjgl.version>3.1.0-SNAPSHOT</lwjgl.version>
+		<lwjgl.version>3.1.1-SNAPSHOT</lwjgl.version>
 		<swt.version>4.6.1</swt.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
