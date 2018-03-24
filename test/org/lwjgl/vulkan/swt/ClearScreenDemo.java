@@ -970,6 +970,8 @@ public class ClearScreenDemo {
             // Handle window messages. Resize events happen exactly here.
             // So it is safe to use the new swapchain images and framebuffers afterwards.
             while (display.readAndDispatch());
+            if (display.isDisposed() || shell.isDisposed())
+            	return;
             if (swapchainRecreator.mustRecreate)
                 swapchainRecreator.recreate();
 
