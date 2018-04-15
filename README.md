@@ -7,6 +7,7 @@ Revised drop-in implementation of SWT's GLCanvas.
 Support for:
 - creating OpenGL 3.0 and 3.2 core/compatibility contexts (including debug/forward compatible)
 - OpenGL ES contexts
+- no error contexts
 - floating-point and sRGB pixel formats
 - multisampled framebuffers (also with different number of color samples - Nvidia only)
 - v-sync/swap control

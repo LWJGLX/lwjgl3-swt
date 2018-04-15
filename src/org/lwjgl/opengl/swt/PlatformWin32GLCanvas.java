@@ -18,10 +18,12 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.GL43;
+import org.lwjgl.opengl.KHRNoError;
 import org.lwjgl.opengl.NVMultisampleCoverage;
 import org.lwjgl.opengl.WGL;
 import org.lwjgl.opengl.WGLARBContextFlushControl;
 import org.lwjgl.opengl.WGLARBCreateContext;
+import org.lwjgl.opengl.WGLARBCreateContextNoError;
 import org.lwjgl.opengl.WGLARBCreateContextProfile;
 import org.lwjgl.opengl.WGLARBCreateContextRobustness;
 import org.lwjgl.opengl.WGLARBMultisample;
@@ -630,6 +632,10 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         }
         if (attribs.forwardCompatible) {
             contextFlags |= WGLARBCreateContext.WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+        }
+        if (attribs.noErrorContext) {
+            contextFlags |= KHRNoError.GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
+            attribList.put(WGLARBCreateContextNoError.WGL_CONTEXT_OPENGL_NO_ERROR_ARB).put(1);
         }
         if (attribs.robustness) {
             // Check for WGL_ARB_create_context_robustness

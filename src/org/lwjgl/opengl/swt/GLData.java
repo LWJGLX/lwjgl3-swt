@@ -153,5 +153,12 @@ public class GLData {
      * the current application and no other application in the system.
      */
     public boolean contextResetIsolation;
+    /**
+     * Whether to use a "no error" context, as described in
+     * <a href="https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_create_context_no_error.txt">ARB_create_context_no_error</a>
+     * and <a href="https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_no_error.txt">KHR_no_error</a>.
+     * The default is <code>false</code>.
+     */
+    public boolean noErrorContext;
 
 }
