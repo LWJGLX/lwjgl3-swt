@@ -205,10 +205,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         // Somehow we need to temporarily set 'org.eclipse.swt.internal.win32.useOwnDC'
         // to true or else context creation on Windows fails...
         if (parent != null) {
-            if (!org.eclipse.swt.internal.win32.OS.IsWinCE
-                    && org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
-                parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
-            }
+        	// Removed windows version check - SWT dropped support for windows before Vista
+        	// https://github.com/eclipse/eclipse.platform.swt/commit/84c9e305cb087110cb300a5e58f86583cf80914d#diff-bb4584995e162b851fafacf3b046cc35
+            parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
         }
         return style;
     }
