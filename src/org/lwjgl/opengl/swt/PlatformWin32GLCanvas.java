@@ -51,107 +51,11 @@ import org.lwjgl.system.windows.User32;
  * 
  * @author Kai Burjack
  */
-class PlatformWin32GLCanvas implements PlatformGLCanvas {
+class PlatformWin32GLCanvas extends AbstractPlatformGLCanvas {
     private static final String USE_OWNDC_KEY = "org.eclipse.swt.internal.win32.useOwnDC";
 
     private long wglDelayBeforeSwapNVAddr = 0L;
     private boolean wglDelayBeforeSwapNVAddr_set = false;
-
-    private static boolean atLeast32(int major, int minor) {
-        return major == 3 && minor >= 2 || major > 3;
-    }
-
-    private static boolean atLeast30(int major, int minor) {
-        return major == 3 && minor >= 0 || major > 3;
-    }
-
-    private static boolean validVersionGL(int major, int minor) {
-        return (major == 0 && minor == 0) || // unspecified gets highest supported version on Nvidia
-               (major >= 1 && minor >= 0) &&
-               (major != 1 || minor <= 5) &&
-               (major != 2 || minor <= 1) &&
-               (major != 3 || minor <= 3) &&
-               (major != 4 || minor <= 5);
-    }
-
-    private static boolean validVersionGLES(int major, int minor) {
-        return (major == 0 && minor == 0) || // unspecified gets 1.1 on Nvidia
-               (major >= 1 && minor >= 0) &&
-               (major != 1 || minor <= 1) &&
-               (major != 2 || minor <= 0);
-    }
-
-    /**
-     * Validate the given {@link GLData} and throw an exception on validation error.
-     * 
-     * @param attribs
-     *            the {@link GLData} to validate
-     */
-    public static void validateAttributes(GLData attribs) {
-        if (attribs.alphaSize < 0) {
-            throw new IllegalArgumentException("Alpha bits cannot be less than 0");
-        }
-        if (attribs.redSize < 0) {
-            throw new IllegalArgumentException("Red bits cannot be less than 0");
-        }
-        if (attribs.greenSize < 0) {
-            throw new IllegalArgumentException("Green bits cannot be less than 0");
-        }
-        if (attribs.blueSize < 0) {
-            throw new IllegalArgumentException("Blue bits cannot be less than 0");
-        }
-        if (attribs.stencilSize < 0) {
-            throw new IllegalArgumentException("Stencil bits cannot be less than 0");
-        }
-        if (attribs.depthSize < 0) {
-            throw new IllegalArgumentException("Depth bits cannot be less than 0");
-        }
-        if (attribs.forwardCompatible && !atLeast30(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Forward-compatibility is only defined for OpenGL version 3.0 and above");
-        }
-        if (attribs.samples < 0) {
-            throw new IllegalArgumentException("Invalid samples count");
-        }
-        if (attribs.profile != null && !atLeast32(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Context profiles are only defined for OpenGL version 3.2 and above");
-        }
-        if (attribs.api == null) {
-            throw new IllegalArgumentException("Unspecified client API");
-        }
-        if (attribs.api == API.GL && !validVersionGL(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Invalid OpenGL version");
-        }
-        if (attribs.api == API.GLES && !validVersionGLES(attribs.majorVersion, attribs.minorVersion)) {
-            throw new IllegalArgumentException("Invalid OpenGL ES version");
-        }
-        if (!attribs.doubleBuffer && attribs.swapInterval != null) {
-            throw new IllegalArgumentException("Swap interval set but not using double buffering");
-        }
-        if (attribs.colorSamplesNV < 0) {
-            throw new IllegalArgumentException("Invalid color samples count");
-        }
-        if (attribs.colorSamplesNV > attribs.samples) {
-            throw new IllegalArgumentException("Color samples greater than number of (coverage) samples");
-        }
-        if (attribs.swapGroupNV < 0) {
-            throw new IllegalArgumentException("Invalid swap group");
-        }
-        if (attribs.swapBarrierNV < 0) {
-            throw new IllegalArgumentException("Invalid swap barrier");
-        }
-        if ((attribs.swapGroupNV > 0 || attribs.swapBarrierNV > 0) && !attribs.doubleBuffer) {
-            throw new IllegalArgumentException("Swap group or barrier requested but not using double buffering");
-        }
-        if (attribs.swapBarrierNV > 0 && attribs.swapGroupNV == 0) {
-            throw new IllegalArgumentException("Swap barrier requested but no valid swap group set");
-        }
-        if (attribs.loseContextOnReset && !attribs.robustness) {
-            throw new IllegalArgumentException("Lose context notification requested but not using robustness");
-        }
-        if (attribs.contextResetIsolation && !attribs.robustness) {
-            throw new IllegalArgumentException("Context reset isolation requested but not using robustness");
-        }
-    }
 
     /**
      * Encode the pixel format attributes stored in the given {@link GLData} into the given {@link IntBuffer} for wglChoosePixelFormatARB to
@@ -205,10 +109,9 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         // Somehow we need to temporarily set 'org.eclipse.swt.internal.win32.useOwnDC'
         // to true or else context creation on Windows fails...
         if (parent != null) {
-            if (!org.eclipse.swt.internal.win32.OS.IsWinCE
-                    && org.eclipse.swt.internal.win32.OS.WIN32_VERSION >= org.eclipse.swt.internal.win32.OS.VERSION(6, 0)) {
-                parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
-            }
+        	// Removed windows version check - SWT dropped support for windows before Vista
+        	// https://github.com/eclipse/eclipse.platform.swt/commit/84c9e305cb087110cb300a5e58f86583cf80914d#diff-bb4584995e162b851fafacf3b046cc35
+            parent.getDisplay().setData(USE_OWNDC_KEY, Boolean.TRUE);
         }
         return style;
     }
@@ -233,7 +136,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
             public void handleEvent(Event event) {
                 switch (event.type) {
                 case SWT.Dispose:
-                    deleteContext(finalContext);
+                    deleteContext(canvas, finalContext);
                     break;
                 }
             }
@@ -840,7 +743,7 @@ class PlatformWin32GLCanvas implements PlatformGLCanvas {
         return ret;
     }
 
-    public boolean deleteContext(long context) {
+    public boolean deleteContext(GLCanvas canvas, long context) {
         boolean ret = WGL.wglDeleteContext(context);
         return ret;
     }

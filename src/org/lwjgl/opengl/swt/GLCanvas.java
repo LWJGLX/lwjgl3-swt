@@ -16,6 +16,8 @@ import org.lwjgl.system.Platform;
 public class GLCanvas extends Canvas {
     GLData effective;
     long context;
+    long xWindow;
+    long glWindow;
 
     private static PlatformGLCanvas platformCanvas;
     static {
@@ -23,6 +25,9 @@ public class GLCanvas extends Canvas {
         switch (Platform.get()) {
         case WINDOWS:
             platformClassName = "org.lwjgl.opengl.swt.PlatformWin32GLCanvas";
+            break;
+        case LINUX:
+            platformClassName = "org.lwjgl.opengl.swt.PlatformLinuxGLCanvas";
             break;
         default:
             throw new AssertionError("NYI");
