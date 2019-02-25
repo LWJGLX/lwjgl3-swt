@@ -22,7 +22,6 @@ switch ( OperatingSystem.current() ) {
 
 sourceSets {
 	main.java.srcDirs = ['src']
-	test.java.srcDirs = ['test']
 }
 
 repositories {
