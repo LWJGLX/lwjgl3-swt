@@ -20,6 +20,11 @@ switch ( OperatingSystem.current() ) {
 		break
 }
 
+sourceSets {
+	main.java.srcDirs = ['src']
+	test.java.srcDirs = ['test']
+}
+
 repositories {
     mavenCentral()
 }
