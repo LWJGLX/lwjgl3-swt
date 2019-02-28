@@ -4,11 +4,10 @@ import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.vulkan.KHRWin32Surface.*;
 import static org.lwjgl.vulkan.VK10.*;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.LongBuffer;
 
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.internal.win32.OS;
 import org.eclipse.swt.widgets.Composite;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkWin32SurfaceCreateInfoKHR;
@@ -32,28 +31,9 @@ public class PlatformWin32VKCanvas implements PlatformVKCanvas {
 
     @Override
     public long create(Composite composite, VKData data) {
-    	long hinstance = 0;
-    	try {
-	    	Class<?> clazz = Class.forName("org.eclipse.swt.internal.win32.OS");
-	    	Method method = clazz.getMethod("GetModuleHandle", char[].class);
-	        hinstance = (long)method.invoke(null, (char[])null);
-    	} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-		}
-    	
-		VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.callocStack()
+        VkWin32SurfaceCreateInfoKHR sci = VkWin32SurfaceCreateInfoKHR.callocStack()
 		        .sType(VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR)
-		        .hinstance(hinstance)
+		        .hinstance(OS.GetModuleHandle(null))
 		        .hwnd(composite.handle);
         LongBuffer pSurface = stackMallocLong(1);
         int err = vkCreateWin32SurfaceKHR(data.instance, sci, null, pSurface);
