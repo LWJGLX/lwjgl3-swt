@@ -25,8 +25,7 @@ The purpose of the new implementation on top of LWJGL 3 is to have full support 
 
 In your existing SWT application just replace all imports of `org.eclipse.swt.opengl.*` with `org.lwjgl.opengl.swt.*`.
 The new implementation is a drop-in replacement, which means that your current SWT code should work like before.
-To use the new features you can use the new fields in the `GLData` class, such as using real multisampled framebuffers on Windows
-or creating a OpenGL 3.2 core context.
+To use the new features you can use the new fields in the `GLData` class, such as using real multisampled framebuffers or creating a OpenGL 3.2 core context.
 
 If your current OpenGL SWT setup looks like this:
 ```Java
@@ -67,6 +66,6 @@ long surface = canvas.surface;
 
 Support for:
 - Vulkan
-- Linux and OS X
+- OS X
 - associating rendering contexts with specific GPUs on Nvidia and AMD
 - pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)
