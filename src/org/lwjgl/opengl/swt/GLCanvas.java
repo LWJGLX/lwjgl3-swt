@@ -16,6 +16,8 @@ import org.lwjgl.system.Platform;
 public class GLCanvas extends Canvas {
     GLData effective;
     long context;
+    long xWindow;
+    long glWindow;
 
     private static PlatformGLCanvas platformCanvas;
     static {

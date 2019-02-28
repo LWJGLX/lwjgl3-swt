@@ -136,7 +136,7 @@ class PlatformWin32GLCanvas extends AbstractPlatformGLCanvas {
             public void handleEvent(Event event) {
                 switch (event.type) {
                 case SWT.Dispose:
-                    deleteContext(finalContext);
+                    deleteContext(canvas, finalContext);
                     break;
                 }
             }
@@ -743,7 +743,7 @@ class PlatformWin32GLCanvas extends AbstractPlatformGLCanvas {
         return ret;
     }
 
-    public boolean deleteContext(long context) {
+    public boolean deleteContext(GLCanvas canvas, long context) {
         boolean ret = WGL.wglDeleteContext(context);
         return ret;
     }

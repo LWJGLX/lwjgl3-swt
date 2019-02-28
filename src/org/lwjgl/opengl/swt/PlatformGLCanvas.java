@@ -15,7 +15,7 @@ interface PlatformGLCanvas {
 
     boolean makeCurrent(GLCanvas canvas, long context);
 
-    boolean deleteContext(long context);
+    boolean deleteContext(GLCanvas canvas, long context);
 
     boolean swapBuffers(GLCanvas canvas);
 

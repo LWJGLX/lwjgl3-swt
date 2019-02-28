@@ -1,5 +1,6 @@
 package org.lwjgl.opengl.swt;
 
+import org.eclipse.swt.widgets.Composite;
 import org.lwjgl.opengl.swt.GLData.API;
 
 abstract class AbstractPlatformGLCanvas implements PlatformGLCanvas {
@@ -100,4 +101,9 @@ abstract class AbstractPlatformGLCanvas implements PlatformGLCanvas {
         }
     }
 
+	public int checkStyle(Composite parent, int style) {
+		return style;
+	}
+
+	public void resetStyle(Composite parent) {}
 }
