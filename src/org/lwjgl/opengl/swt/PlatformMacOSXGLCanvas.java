@@ -7,9 +7,6 @@ import org.eclipse.swt.internal.cocoa.NSOpenGLPixelFormat;
 import org.eclipse.swt.internal.cocoa.NSView;
 import org.eclipse.swt.internal.cocoa.OS;
 import org.eclipse.swt.widgets.Listener;
-import org.lwjgl.opengl.CGL;
-import org.lwjgl.opengl.WGL;
-import org.lwjgl.opengl.WGLNVDelayBeforeSwap;
 import org.lwjgl.opengl.swt.GLData.Profile;
 
 /**
@@ -26,22 +23,6 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 	private static final String GLCONTEXT_KEY = "org.eclipse.swt.internal.cocoa.glcontext";
 
 	private NSView view;
-
-	/* Global state flags */
-	static final int DISPOSED = 1 << 0;
-	static final int CANVAS = 1 << 1;
-	static final int KEYED_DATA = 1 << 2;
-	static final int DISABLED = 1 << 3;
-	static final int HIDDEN = 1 << 4;
-	static final int HOT = 1 << 5;
-	static final int MOVED = 1 << 6;
-	static final int RESIZED = 1 << 7;
-	static final int EXPANDING = 1 << 8;
-	static final int IGNORE_WHEEL = 1 << 9;
-	static final int PARENT_BACKGROUND = 1 << 10;
-	static final int THEME_BACKGROUND = 1 << 11;
-
-	static final int SKIN_NEEDED = 1 << 21;
 
 	static final int NSOpenGLPFAOpenGLProfile = 99;
 	static final int NSOpenGLProfileVersion3_2Core = 0x3200;
