@@ -92,11 +92,6 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			}
 		}
 		
-		if(data.swapInterval != null && data.swapInterval > 0) {
-			attrib[pos++] = OS.NSOpenGLCPSwapInterval;
-			attrib[pos++] = data.swapInterval;
-		}
-		
 
 		/*
 		 * Feature in Cocoa: NSOpenGL/CoreOpenGL only supports specifying the
@@ -136,6 +131,9 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			SWT.error(SWT.ERROR_UNSUPPORTED_DEPTH);
 		}
 		context = context.initWithFormat(pixelFormat, ctx);
+		if(data.swapInterval != null && data.swapInterval.intValue() > 0)
+			context.setValues(new int[] {data.swapInterval.intValue()}, OS.NSOpenGLCPSwapInterval);
+		
 		context.setValues(new int[] { -1 }, OS.NSOpenGLCPSurfaceOrder);
 		canvas.setData(GLCONTEXT_KEY, context);
 		NSNotificationCenter.defaultCenter().addObserver(view, OS.sel_updateOpenGLContext_, OS.NSViewGlobalFrameDidChangeNotification, view);

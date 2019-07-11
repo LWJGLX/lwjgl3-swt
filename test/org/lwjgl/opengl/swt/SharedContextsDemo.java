@@ -53,6 +53,8 @@ public class SharedContextsDemo {
         shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
         GLData data = new GLData();
         data.doubleBuffer = true;
+        data.swapInterval = 1;
+        data.samples = 2;
         final GLCanvas canvas0 = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         canvas0.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         data.shareContext = canvas0;
