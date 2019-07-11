@@ -72,11 +72,11 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			attrib[pos++] = data.stencilSize;
 		}
 
-		if(data.profile ==Profile.CORE) {
+		if(data.profile == Profile.CORE) {
 			attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 			attrib[pos++] = NSOpenGLProfileVersion3_2Core;
 		}
-		if(data.profile ==Profile.COMPATIBILITY) {
+		if(data.profile == Profile.COMPATIBILITY) {
 			attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 			attrib[pos++] = NSOpenGLProfileVersionLegacy;
 		} else {
@@ -86,9 +86,16 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			} else if(data.majorVersion >= 3) {
 				attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 				attrib[pos++] = NSOpenGLProfileVersion3_2Core;
+			} else {
+				attrib[pos++] = NSOpenGLPFAOpenGLProfile;
+				attrib[pos++] = NSOpenGLProfileVersionLegacy;
 			}
 		}
 		
+		if(data.swapInterval != null && data.swapInterval > 0) {
+			attrib[pos++] = OS.NSOpenGLCPSwapInterval;
+			attrib[pos++] = data.swapInterval;
+		}
 		
 
 		/*
@@ -185,7 +192,7 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 
 	@Override
 	public boolean swapBuffers(GLCanvas canvas) {
-		context.flushBuffer();
+		new NSOpenGLContext(canvas.context).flushBuffer();
 		return true;
 	}
 
