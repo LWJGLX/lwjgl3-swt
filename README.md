@@ -16,6 +16,20 @@ Support for:
 - sync'ing buffer swaps over multiple windows and cards - Nvidia only
 - delay before swap - Nvidia only
 
+## Building with gradle / maven as a dependency
+
+The easiest way to use this library with gradle / maven is to use jitpack.io. Unfortunatly, with the build.gradle present on master the build will always be made for linux when using jitpack.
+
+To fix this problem you need to specify to jitpack which branch of this repo you want to use ([WIN-Gradle](https://github.com/ProtectedVariable/lwjgl3-swt/tree/WIN-Gradle), [OSX-Gradle](https://github.com/ProtectedVariable/lwjgl3-swt/tree/OSX-Gradle), [LINUX-Gradle](https://github.com/ProtectedVariable/lwjgl3-swt/tree/LINUX-Gradle)) to build for each OS.
+
+The Groovy / XML code can be generated from https://jitpack.io/#ProtectedVariable/lwjgl3-swt (check the branch tab)
+
+For example, to use the Windows version:
+```Groovy
+dependencies {
+  implementation 'com.github.ProtectedVariable:lwjgl3-swt:WIN-Gradle-SNAPSHOT'
+}
+```
 ## Why does it exist?
 
 The above features have been lacking for some years in the SWT-provided GLCanvas implementation.
@@ -66,6 +80,6 @@ long surface = canvas.surface;
 
 Support for:
 - Vulkan
-- OS X
+- ~~OS X~~ (Done)
 - associating rendering contexts with specific GPUs on Nvidia and AMD
 - pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)
