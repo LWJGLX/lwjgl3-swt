@@ -16,7 +16,7 @@ Support for:
 - sync'ing buffer swaps over multiple windows and cards - Nvidia only
 - delay before swap - Nvidia only
 
-## Building with gradle / maven as a dependency
+## Using as a dependency with Gradle / Maven
 
 The easiest way to use this library with gradle / maven is to use jitpack.io. Unfortunatly, with the build.gradle present on master the build will always be made for linux when using jitpack.
 
