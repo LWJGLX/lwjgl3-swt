@@ -29,14 +29,16 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 	static final int NSOpenGLProfileVersionLegacy = 0x1000;
 	static final int NSOpenGLProfileVersion4_1Core = 0x4100;
 
-
 	@Override
 	/*
-	 * IMPORTANT: NSOpenGL/CoreOpenGL only supports specifying the total number of bits in the size of the color component
-	 *  -> effective.redSize, effective.blueSize and effective.greenSize won't be set !
-	 *  
-	 * IMPORTANT: NSOpenGL/CoreOpenGL only supports specifying the total number of bits in the size of the color accumulator component.
-	 *  -> effective.accumRedSize, effective.accumBlueSize, effective.accumGreenSize and effective.accumAlphaSize won't be set !
+	 * IMPORTANT: NSOpenGL/CoreOpenGL only supports specifying the total number
+	 * of bits in the size of the color component -> effective.redSize,
+	 * effective.blueSize and effective.greenSize won't be set !
+	 * 
+	 * IMPORTANT: NSOpenGL/CoreOpenGL only supports specifying the total number
+	 * of bits in the size of the color accumulator component. ->
+	 * effective.accumRedSize, effective.accumBlueSize, effective.accumGreenSize
+	 * and effective.accumAlphaSize won't be set !
 	 */
 	public long create(GLCanvas canvas, GLData data, GLData effective) {
 
@@ -79,18 +81,18 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			attrib[pos++] = data.stencilSize;
 		}
 
-		if(data.profile == Profile.CORE) {
+		if (data.profile == Profile.CORE) {
 			attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 			attrib[pos++] = NSOpenGLProfileVersion3_2Core;
 		}
-		if(data.profile == Profile.COMPATIBILITY) {
+		if (data.profile == Profile.COMPATIBILITY) {
 			attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 			attrib[pos++] = NSOpenGLProfileVersionLegacy;
 		} else {
-			if(data.majorVersion >= 4) {
+			if (data.majorVersion >= 4) {
 				attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 				attrib[pos++] = NSOpenGLProfileVersion4_1Core;
-			} else if(data.majorVersion >= 3) {
+			} else if (data.majorVersion >= 3) {
 				attrib[pos++] = NSOpenGLPFAOpenGLProfile;
 				attrib[pos++] = NSOpenGLProfileVersion3_2Core;
 			} else {
@@ -98,7 +100,6 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 				attrib[pos++] = NSOpenGLProfileVersionLegacy;
 			}
 		}
-		
 
 		/*
 		 * Feature in Cocoa: NSOpenGL/CoreOpenGL only supports specifying the
@@ -138,9 +139,9 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			SWT.error(SWT.ERROR_UNSUPPORTED_DEPTH);
 		}
 		context = context.initWithFormat(pixelFormat, ctx);
-		if(data.swapInterval != null && data.swapInterval.intValue() > 0)
-			context.setValues(new int[] {data.swapInterval.intValue()}, OS.NSOpenGLCPSwapInterval);
-		
+		if (data.swapInterval != null && data.swapInterval.intValue() > 0)
+			context.setValues(new int[] { data.swapInterval.intValue() }, OS.NSOpenGLCPSwapInterval);
+
 		context.setValues(new int[] { -1 }, OS.NSOpenGLCPSurfaceOrder);
 		canvas.setData(GLCONTEXT_KEY, context);
 		NSNotificationCenter.defaultCenter().addObserver(view, OS.sel_updateOpenGLContext_, OS.NSViewGlobalFrameDidChangeNotification, view);
@@ -164,38 +165,38 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 			}
 		};
 		canvas.addListener(SWT.Dispose, listener);
-		
+
 		long[] longptr = new long[1];
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFAAlphaSize, 0);
 		effective.alphaSize = (int) longptr[0];
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFADepthSize, 0);
-        effective.depthSize = (int) longptr[0];
+		effective.depthSize = (int) longptr[0];
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFAStencilSize, 0);
-        effective.stencilSize = (int) longptr[0];
+		effective.stencilSize = (int) longptr[0];
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFADoubleBuffer, 0);
-        effective.doubleBuffer = longptr[0] == 1;
+		effective.doubleBuffer = longptr[0] == 1;
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFAStereo, 0);
-        effective.stereo = longptr[0] == 1;
+		effective.stereo = longptr[0] == 1;
 
 		pixelFormat.getValues(longptr, NSOpenGLPFAOpenGLProfile, 0);
-		if(longptr[0] == NSOpenGLProfileVersion3_2Core) {
+		if (longptr[0] == NSOpenGLProfileVersion3_2Core) {
 			effective.majorVersion = 3;
 			effective.minorVersion = 2;
 			effective.profile = Profile.CORE;
-		} else if(longptr[0] == NSOpenGLProfileVersionLegacy) {
+		} else if (longptr[0] == NSOpenGLProfileVersionLegacy) {
 			effective.profile = Profile.COMPATIBILITY;
-		} else if(longptr[0] == NSOpenGLProfileVersion4_1Core) {
+		} else if (longptr[0] == NSOpenGLProfileVersion4_1Core) {
 			effective.majorVersion = 4;
 			effective.minorVersion = 1;
 			effective.profile = Profile.CORE;
 		}
-		
+
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFASampleBuffers, 0);
 		data.sampleBuffers = (int) longptr[0];
-		
+
 		pixelFormat.getValues(longptr, OS.NSOpenGLPFASamples, 0);
 		data.samples = (int) longptr[0];
-				
+
 		return context.id;
 	}
 
