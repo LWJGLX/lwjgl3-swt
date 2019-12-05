@@ -20,6 +20,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.swt.GLCanvas;
+import org.lwjgl.opengl.swt.GLData;
 import org.lwjgl.opengl.swt.GLData.Profile;
 import org.lwjgl.system.Platform;
 
@@ -61,7 +63,6 @@ public class Swt33CoreMsDemo {
 		data.swapInterval = 1;
 		final GLCanvas canvas = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
 		canvas.setCurrent();
-		GL.createCapabilities();
 
 		final Rectangle rect = new Rectangle(0, 0, 0, 0);
 		canvas.addListener(SWT.Resize, new Listener() {
@@ -83,13 +84,17 @@ public class Swt33CoreMsDemo {
 			}
 		});
 
+		shell.setSize(800, 600);
+		shell.open();
+		
+		GL.createCapabilities();
 		glClearColor(0.3f, 0.5f, 0.8f, 1.0f);
 
 		// Create a simple shader program
 		int program = glCreateProgram();
 		int vs = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vs,
-				"#version 130\n" +
+				"#version 330 core\n" +
 				"in vec3 vertex;" +
 				"uniform float rot;" +
 				"uniform float aspect;" +
@@ -105,7 +110,7 @@ public class Swt33CoreMsDemo {
 		glAttachShader(program, vs);
 		int fs = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fs,
-				"#version 130\n" +
+				"#version 330 core\n" +
 				"out vec4 color;" +
 				"void main(void) {" +
 				"  color = vec4(0.1, 0.3, 0.5, 1.0);" + 
@@ -140,9 +145,6 @@ public class Swt33CoreMsDemo {
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, (IntBuffer) BufferUtils.createIntBuffer(indices.length).put(indices).flip(), GL_STATIC_DRAW);
-
-		shell.setSize(800, 600);
-		shell.open();
 
 		display.asyncExec(new Runnable() {
 			float rot;

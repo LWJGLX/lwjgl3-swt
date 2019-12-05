@@ -33,7 +33,7 @@
 						<configuration>
 							<excludes>
 								<exclude>**/PlatformLinux*.java</exclude>
-								<exclude>**/PlatformOSX*.java</exclude>
+								<exclude>**/PlatformMacOSX*.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
@@ -98,7 +98,7 @@
 						<configuration>
 							<excludes>
 								<exclude>**/PlatformWin32*.java</exclude>
-								<exclude>**/PlatformOSX*.java</exclude>
+								<exclude>**/PlatformMacOSX*.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>

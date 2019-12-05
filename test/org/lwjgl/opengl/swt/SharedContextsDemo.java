@@ -19,6 +19,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.swt.GLCanvas;
+import org.lwjgl.opengl.swt.GLData;
 import org.lwjgl.system.Platform;
 
 /**
@@ -37,7 +39,7 @@ public class SharedContextsDemo {
                 if (e.stateMask == SWT.ALT && (e.keyCode == SWT.KEYPAD_CR || e.keyCode == SWT.CR)) {
                     if (Platform.get() == Platform.WINDOWS) {
                         // Fix crappy/buggy fullscreen mode in SWT
-                        SwtHelperWin32.properFullscreen(shell);
+                    	SwtHelperWin32.properFullscreen(shell);
                     } else {
                         shell.setFullScreen(!shell.getFullScreen());
                     }
@@ -50,19 +52,15 @@ public class SharedContextsDemo {
         int dh = shell.getSize().y - shell.getClientArea().height;
         shell.setMinimumSize(minClientWidth + dw, minClientHeight + dh);
         GLData data = new GLData();
+        data.doubleBuffer = true;
         data.swapInterval = 1;
         data.samples = 2;
-        data.doubleBuffer = true;
         final GLCanvas canvas0 = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         canvas0.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         data.shareContext = canvas0;
         final GLCanvas canvas1 = new GLCanvas(shell, SWT.NO_BACKGROUND | SWT.NO_REDRAW_RESIZE, data);
         canvas1.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         final GLCanvas[] canvases = { canvas0, canvas1 };
-
-        // Create GLCapabilities in the first context
-        canvas0.setCurrent();
-        GL.createCapabilities();
 
         shell.addListener(SWT.Traverse, new Listener() {
             public void handleEvent(Event event) {
@@ -76,13 +74,18 @@ public class SharedContextsDemo {
             }
         });
 
+        shell.setSize(600, 300);
+        shell.open();
+        
+        // Create GLCapabilities in the first context
+        canvas0.setCurrent();
+        GL.createCapabilities();
         // Create resources in the first context
-
         // Create a simple shader program
         final int program = glCreateProgram();
         int vs = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vs,
-                "uniform float rot;" +
+        		"uniform float rot;" +
                 "uniform float aspect;" +
                 "void main(void) {" + 
                 "  vec4 v = gl_Vertex * 0.5;" +
@@ -134,10 +137,7 @@ public class SharedContextsDemo {
             glEnableClientState(GL_VERTEX_ARRAY);
             glUseProgram(program);
         }
-
-        shell.setSize(600, 300);
-        shell.open();
-
+        
         display.asyncExec(new Runnable() {
             float rot;
             long lastTime = System.nanoTime();
@@ -147,7 +147,7 @@ public class SharedContextsDemo {
                 for (int i = 0; i < canvases.length; i++) {
                     GLCanvas canvas = canvases[i];
                     if (canvas.isDisposed()) {
-                        return;
+                    	return;
                     }
                     canvas.setCurrent();
                     glClear(GL_COLOR_BUFFER_BIT);

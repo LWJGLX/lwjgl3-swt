@@ -66,6 +66,5 @@ long surface = canvas.surface;
 
 Support for:
 - Vulkan
-- OS X
 - associating rendering contexts with specific GPUs on Nvidia and AMD
 - pbuffers (there are interesting extensions that are only supported for pbuffers, such as EXT_packed_float and NV_video_output)

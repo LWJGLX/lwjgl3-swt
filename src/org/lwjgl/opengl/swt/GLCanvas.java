@@ -29,6 +29,9 @@ public class GLCanvas extends Canvas {
         case LINUX:
             platformClassName = "org.lwjgl.opengl.swt.PlatformLinuxGLCanvas";
             break;
+        case MACOSX:
+        	platformClassName = "org.lwjgl.opengl.swt.PlatformMacOSXGLCanvas";
+        	break;
         default:
             throw new AssertionError("NYI");
         }
