@@ -7,6 +7,7 @@ import org.eclipse.swt.internal.cocoa.NSOpenGLPixelFormat;
 import org.eclipse.swt.internal.cocoa.NSView;
 import org.eclipse.swt.internal.cocoa.OS;
 import org.eclipse.swt.widgets.Listener;
+import org.lwjgl.opengl.CGL;
 import org.lwjgl.opengl.swt.GLData.Profile;
 
 /**
@@ -231,6 +232,23 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 	@Override
 	public boolean swapBuffers(GLCanvas canvas) {
 		new NSOpenGLContext(canvas.context).flushBuffer();
+		return true;
+	}
+
+	@Override
+	public int glGetSwapInterval(GLCanvas canvas) {
+		// Unsure how to query swap interval for mac osx using context as with glSwapInterval, so we'll use cocoa instead:
+		int[] params = new int[1];
+		if(CGL.CGLGetParameter(this.context.id, CGL.kCGLCPSwapInterval, params) == CGL.kCGLNoError) {
+			return params[0];
+		}
+		return canvas.effective.swapInterval.intValue();
+	}
+
+	@Override
+	public boolean glSwapInterval(GLCanvas canvas, int interval) {
+		canvas.effective.swapInterval = Integer.valueOf(interval);
+		context.setValues(new int[] { canvas.effective.swapInterval.intValue() }, OS.NSOpenGLCPSwapInterval);
 		return true;
 	}
 

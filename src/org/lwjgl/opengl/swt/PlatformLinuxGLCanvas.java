@@ -30,6 +30,8 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLXCapabilities;
+import org.lwjgl.opengl.GLXEXTSwapControl;
+import org.lwjgl.opengl.GLXSGISwapControl;
 import org.lwjgl.opengl.KHRNoError;
 import org.lwjgl.opengl.swt.GLData.API;
 import org.lwjgl.opengl.swt.GLData.Profile;
@@ -264,6 +266,22 @@ class PlatformLinuxGLCanvas extends AbstractPlatformGLCanvas {
 		long xDisplay = gdk_x11_display_get_xdisplay(window);
 		glXSwapBuffers(xDisplay, canvas.xWindow);
 		return false;
+	}
+
+	@Override
+	public int glGetSwapInterval(GLCanvas canvas) {
+		return canvas.effective.swapInterval.intValue();
+	}
+
+	@Override
+	public boolean glSwapInterval(GLCanvas canvas, int interval) {
+		// There is also GLXSGISwapControl.glXSwapIntervalSGI(int interval), but I am unsure which one should be used and when...
+		
+		long window = GTK.gtk_widget_get_window(canvas.handle);
+		long xDisplay = gdk_x11_display_get_xdisplay(window);
+		GLXEXTSwapControl.glXSwapIntervalEXT(xDisplay, window, interval);
+		canvas.effective.swapInterval = Integer.valueOf(interval);
+		return true;
 	}
 
 	@Override

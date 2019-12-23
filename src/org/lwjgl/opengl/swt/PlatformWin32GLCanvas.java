@@ -755,6 +755,22 @@ class PlatformWin32GLCanvas extends AbstractPlatformGLCanvas {
         return ret;
     }
 
+    public int glGetSwapInterval(GLCanvas canvas) {
+        long wglGetSwapIntervalEXTAddr = WGL.wglGetProcAddress("wglGetSwapIntervalEXT");
+        if (wglGetSwapIntervalEXTAddr == 0L) {
+            throw new UnsupportedOperationException("wglGetSwapIntervalEXT is unavailable");
+        }
+        return JNI.callI(wglGetSwapIntervalEXTAddr);
+    }
+
+    public boolean glSwapInterval(GLCanvas canvas, int interval) {
+        long wglSwapIntervalEXTAddr = WGL.wglGetProcAddress("wglSwapIntervalEXT");
+        if (wglSwapIntervalEXTAddr == 0L) {
+            throw new UnsupportedOperationException("wglSwapIntervalEXT is unavailable");
+        }
+        return JNI.callI(interval, wglSwapIntervalEXTAddr) == 1;
+    }
+
     public boolean delayBeforeSwapNV(GLCanvas canvas, float seconds) {
         if (!wglDelayBeforeSwapNVAddr_set) {
             wglDelayBeforeSwapNVAddr = WGL.wglGetProcAddress("wglDelayBeforeSwapNV");

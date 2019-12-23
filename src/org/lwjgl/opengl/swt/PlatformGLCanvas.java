@@ -19,6 +19,10 @@ interface PlatformGLCanvas {
 
     boolean swapBuffers(GLCanvas canvas);
 
+    public int glGetSwapInterval(GLCanvas canvas);
+
+    public boolean glSwapInterval(GLCanvas canvas, int interval);
+
     boolean delayBeforeSwapNV(GLCanvas canvas, float seconds);
 
     int checkStyle(Composite parent, int style);

@@ -133,6 +133,37 @@ public class GLCanvas extends Canvas {
     }
 
     /**
+     * Returns the current swap interval for the window associated with the current context.
+     * 
+     * @return The current swap interval for the window associated with the current context.
+     */
+    public int glGetSwapInterval() {
+        checkWidget();
+        return platformCanvas.glGetSwapInterval(this);
+    }
+
+    /**
+     * Specifies the minimum number of video frame periods per buffer swap for the window associated with the current context. The interval takes effect when
+     * {@link #swapBuffers()} or glSwapLayerBuffer is first called subsequent to the {@code glSwapInterval} call.
+     * 
+     * <p>A video frame period is the time required by the monitor to display a full frame of video data.  In the case of an interlaced monitor, this is typically
+     * the time required to display both the even and odd fields of a frame of video data.  An interval set to a value of 2 means that the color buffers will
+     * be swapped at most every other video frame.</p>
+     * 
+     * <p>If {@code interval} is set to a value of 0, buffer swaps are not synchronized to a video frame.  The {@code interval} value is silently clamped to the
+     * maximum implementation-dependent value supported before being stored.</p>
+     * 
+     * <p>The swap interval is not part of the render context state. It cannot be pushed or popped. The default swap interval is 1.</p>
+     *
+     * @param interval the minimum number of video frames that are displayed before a buffer swap will occur
+     * @return <code>true</code> if the implementation was able to set the swap interval
+     */
+    public boolean glSwapInterval(int interval) {
+        checkWidget();
+        return platformCanvas.glSwapInterval(this, interval);
+    }
+
+    /**
      * Blocks until <code>seconds</code> seconds before a synchronized swap would occur.
      * 
      * @param seconds
