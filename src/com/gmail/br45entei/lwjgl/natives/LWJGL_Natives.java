@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * 
+ * Copyright (C) 2020 Brian_Entei (br45entei@gmail.com)
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ *******************************************************************************/
 package com.gmail.br45entei.lwjgl.natives;
 
 import java.io.File;
@@ -7,6 +25,8 @@ import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import sun.security.action.GetPropertyAction;
@@ -133,7 +153,7 @@ public class LWJGL_Natives {
 		
 	}
 	
-	public static final List<File> loadNatives() {
+	public static final List<File> loadNatives(Collection<String> extraNativeResourcePathsToLoad) {
 		final File folder = LWJGL_Natives.getNativesFolder();
 		
 		List<File> unpackedNatives = new ArrayList<>(),
@@ -215,8 +235,22 @@ public class LWJGL_Natives {
 					throw new AssertionError("No native libraries are available for this platform!");
 				}
 				
-				for(String resourcePath : paths) {
+				/*for(String resourcePath : paths) {
 					System.out.println(resourcePath + "; Present: " + (LWJGL_Natives.class.getResourceAsStream(resourcePath) == null ? "No" : "Yes"));
+				}*/
+				
+				if(extraNativeResourcePathsToLoad != null) {
+					for(String resourcePath : extraNativeResourcePathsToLoad) {
+						System.out.print("Extra native library path: " + resourcePath + "; Is present: ");
+						boolean inputStreamPresent = LWJGL_Natives.class.getResourceAsStream(resourcePath) != null;
+						if(inputStreamPresent && resourcePath.contains("/")) {
+							paths.add(resourcePath);
+							System.out.println("Yes");
+						} else {
+							System.out.println("No: " + (inputStreamPresent ? "Resource path does not contain any forward-slashes! ('/')" : "Resource is missing or bad resource path!"));
+						}
+						System.out.flush();
+					}
 				}
 				
 				for(String resourcePath : paths) {
@@ -261,9 +295,17 @@ public class LWJGL_Natives {
 		return loadedNatives;
 	}
 	
+	public static final List<File> loadNatives(String... extraNativeResourcePathsToLoad) {
+		return loadNatives(Arrays.asList(extraNativeResourcePathsToLoad));
+	}
+	
+	/** Runs a simple LWJGL3/SWT demo application.
+	 * 
+	 * @param args Program command line arguments
+	 * @see com.gmail.br45entei.lwjgl.demo.LWJGL_SWT_Demo LWJGL_SWT_Demo */
 	public static final void main(String[] args) {
 		loadNatives();
-		com.gmail.br45entei.lwjgl.demo.LWJGL_SWT_Demo.main(args);
+		com.gmail.br45entei.lwjgl.demo.LWJGL_SWT_Demo.runDemo(args);
 	}
 	
 }
