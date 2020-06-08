@@ -89,8 +89,8 @@ public class LWJGL_Natives {
 		});
 	}
 	
-	/** This class contains modified code copied from
-	 * {@link org.lwjgl.system.Platform} because using any class from LWJGL
+	/** This class contains modified code (as of 06/06/2020 05:47 PM CST) copied
+	 * from {@link org.lwjgl.system.Platform} because using any class from LWJGL
 	 * before the native libraries are loaded in causes an
 	 * {@link UnsatisfiedLinkError}, resulting in the libraries not being loaded
 	 * properly.
@@ -123,9 +123,9 @@ public class LWJGL_Natives {
 		
 	}
 	
-	/** This class contains modified code copied from
-	 * {@link org.lwjgl.system.Platform.Architecture} because using any class
-	 * from LWJGL before the native libraries are loaded in causes an
+	/** This class contains modified code (as of 06/06/2020 05:47 PM CST) copied
+	 * from {@link org.lwjgl.system.Platform.Architecture} because using any
+	 * class from LWJGL before the native libraries are loaded in causes an
 	 * {@link UnsatisfiedLinkError}, resulting in the libraries not being loaded
 	 * properly.
 	 * 
