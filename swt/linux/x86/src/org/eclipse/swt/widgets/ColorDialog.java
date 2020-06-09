@@ -1,0 +1,350 @@
+/*******************************************************************************
+ * Copyright (c) 2000, 2017 IBM Corporation and others.
+ *
+ * This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+package org.eclipse.swt.widgets;
+
+
+import org.eclipse.swt.*;
+import org.eclipse.swt.graphics.*;
+import org.eclipse.swt.internal.*;
+import org.eclipse.swt.internal.gtk.*;
+
+/**
+ * Instances of this class allow the user to select a color
+ * from a predefined set of available colors.
+ * <dl>
+ * <dt><b>Styles:</b></dt>
+ * <dd>(none)</dd>
+ * <dt><b>Events:</b></dt>
+ * <dd>(none)</dd>
+ * </dl>
+ * <p>
+ * IMPORTANT: This class is <em>not</em> intended to be subclassed.
+ * </p>
+ *
+ * @see <a href="http://www.eclipse.org/swt/examples.php">SWT Example: ControlExample, Dialog tab</a>
+ * @see <a href="http://www.eclipse.org/swt/">Sample code and further information</a>
+ * @noextend This class is not intended to be subclassed by clients.
+ */
+public class ColorDialog extends Dialog {
+	RGB rgb;
+	RGB [] rgbs;
+/**
+ * Constructs a new instance of this class given only its parent.
+ *
+ * @param parent a composite control which will be the parent of the new instance
+ *
+ * @exception IllegalArgumentException <ul>
+ *    <li>ERROR_NULL_ARGUMENT - if the parent is null</li>
+ * </ul>
+ * @exception SWTException <ul>
+ *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the parent</li>
+ *    <li>ERROR_INVALID_SUBCLASS - if this class is not an allowed subclass</li>
+ * </ul>
+ *
+ * @see SWT
+ * @see Widget#checkSubclass
+ * @see Widget#getStyle
+ */
+public ColorDialog (Shell parent) {
+	this (parent, SWT.APPLICATION_MODAL);
+}
+/**
+ * Constructs a new instance of this class given its parent
+ * and a style value describing its behavior and appearance.
+ * <p>
+ * The style value is either one of the style constants defined in
+ * class <code>SWT</code> which is applicable to instances of this
+ * class, or must be built by <em>bitwise OR</em>'ing together
+ * (that is, using the <code>int</code> "|" operator) two or more
+ * of those <code>SWT</code> style constants. The class description
+ * lists the style constants that are applicable to the class.
+ * Style bits are also inherited from superclasses.
+ * </p>
+ *
+ * @param parent a composite control which will be the parent of the new instance (cannot be null)
+ * @param style the style of control to construct
+ *
+ * @exception IllegalArgumentException <ul>
+ *    <li>ERROR_NULL_ARGUMENT - if the parent is null</li>
+ * </ul>
+ * @exception SWTException <ul>
+ *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the parent</li>
+ *    <li>ERROR_INVALID_SUBCLASS - if this class is not an allowed subclass</li>
+ * </ul>
+ *
+ * @see SWT
+ * @see Widget#checkSubclass
+ * @see Widget#getStyle
+ */
+public ColorDialog (Shell parent, int style) {
+	super (parent, checkStyle (parent, style));
+	checkSubclass ();
+}
+
+/**
+ * Returns the currently selected color in the receiver.
+ *
+ * @return the RGB value for the selected color, may be null
+ *
+ * @see PaletteData#getRGBs
+ */
+public RGB getRGB () {
+	return rgb;
+}
+/**
+ * Returns an array of <code>RGB</code>s which are the list of
+ * custom colors selected by the user in the receiver, or null
+ * if no custom colors were selected.
+ *
+ * @return the array of RGBs, which may be null
+ *
+ * @since 3.8
+ */
+public RGB[] getRGBs() {
+	return rgbs;
+}
+/**
+ * Makes the receiver visible and brings it to the front
+ * of the display.
+ *
+ * @return the selected color, or null if the dialog was
+ *         cancelled, no color was selected, or an error
+ *         occurred
+ *
+ * @exception SWTException <ul>
+ *    <li>ERROR_WIDGET_DISPOSED - if the receiver has been disposed</li>
+ *    <li>ERROR_THREAD_INVALID_ACCESS - if not called from the thread that created the receiver</li>
+ * </ul>
+ */
+public RGB open () {
+	byte [] buffer = Converter.wcsToMbcs (title, true);
+	int /*long*/ handle = 0;
+	if (GTK.GTK_VERSION >= OS.VERSION (3, 4, 0)) {
+		handle = GTK.gtk_color_chooser_dialog_new (buffer, parent.topHandle ());
+	} else {
+		handle = GTK.gtk_color_selection_dialog_new (buffer);
+	}
+	Display display = parent != null ? parent.getDisplay (): Display.getCurrent ();
+	int /*long*/ colorsel = 0;
+	GdkRGBA rgba;
+	GdkColor color;
+	if (GTK.GTK_VERSION <= OS.VERSION (3, 4, 0)) {
+		if (parent != null) {
+			int /*long*/ shellHandle = parent.topHandle ();
+			GTK.gtk_window_set_transient_for (handle, shellHandle);
+		}
+		int /*long*/ group = GTK.gtk_window_get_group (0);
+		GTK.gtk_window_group_add_window (group, handle);
+		GTK.gtk_window_set_modal (handle, true);
+
+		colorsel = GTK.gtk_color_selection_dialog_get_color_selection (handle);
+		if (rgb != null) {
+			color = new GdkColor ();
+			color.red = (short)((rgb.red & 0xFF) | ((rgb.red & 0xFF) << 8));
+			color.green = (short)((rgb.green & 0xFF) | ((rgb.green & 0xFF) << 8));
+			color.blue = (short)((rgb.blue & 0xFF) | ((rgb.blue & 0xFF) << 8));
+			GTK.gtk_color_selection_set_current_color (colorsel, color);
+		}
+		GTK.gtk_color_selection_set_has_palette (colorsel, true);
+	} else {
+		rgba = new GdkRGBA ();
+		if (rgb != null) {
+			rgba.red = (double) rgb.red / 255;
+			rgba.green = (double) rgb.green / 255;
+			rgba.blue = (double) rgb.blue / 255;
+			rgba.alpha = 1;
+		}
+		GTK.gtk_color_chooser_set_rgba (handle, rgba);
+	}
+	if (rgbs != null) {
+		if (GTK.GTK_VERSION >= OS.VERSION (3, 4, 0)) {
+			int colorsPerRow = 9;
+			int /*long*/ gdkRGBAS = OS.g_malloc(GdkRGBA.sizeof * rgbs.length);
+			rgba = new GdkRGBA ();
+			for (int i=0; i<rgbs.length; i++) {
+				RGB rgbS = rgbs[i];
+				if (rgbS != null) {
+					rgba.red = (double) rgbS.red / 255;
+					rgba.green = (double) rgbS.green / 255;
+					rgba.blue = (double) rgbS.blue / 255;
+					OS.memmove (gdkRGBAS + i * GdkRGBA.sizeof, rgba, GdkRGBA.sizeof);
+				}
+			}
+			GTK.gtk_color_chooser_add_palette(handle, GTK.GTK_ORIENTATION_HORIZONTAL, colorsPerRow,
+					rgbs.length, gdkRGBAS);
+			GTK.gtk_color_chooser_set_rgba (handle, rgba);
+
+
+			if (GTK.gtk_color_chooser_get_use_alpha(handle)) {
+				GTK.gtk_color_chooser_set_use_alpha (handle, false);
+			}
+			OS.g_free (gdkRGBAS);
+		} else {
+			int /*long*/ gdkColors = OS.g_malloc(GdkColor.sizeof * rgbs.length);
+			for (int i=0; i<rgbs.length; i++) {
+				RGB rgb = rgbs[i];
+				if (rgb != null) {
+					color = new GdkColor ();
+					color.red = (short)((rgb.red & 0xFF) | ((rgb.red & 0xFF) << 8));
+					color.green = (short)((rgb.green & 0xFF) | ((rgb.green & 0xFF) << 8));
+					color.blue = (short)((rgb.blue & 0xFF) | ((rgb.blue & 0xFF) << 8));
+					OS.memmove (gdkColors + i * GdkColor.sizeof, color, GdkColor.sizeof);
+				}
+			}
+			int /*long*/ strPtr = GTK.gtk_color_selection_palette_to_string(gdkColors, rgbs.length);
+			int length = C.strlen (strPtr);
+
+			buffer = new byte [length];
+			C.memmove (buffer, strPtr, length);
+			String paletteString = new String (Converter.mbcsToWcs (buffer));
+			buffer = Converter.wcsToMbcs (paletteString, true);
+			OS.g_free (gdkColors);
+			int /*long*/ settings = GTK.gtk_settings_get_default ();
+			if (settings != 0) {
+				GTK.gtk_settings_set_string_property(settings, GTK.gtk_color_palette, buffer, Converter.wcsToMbcs ("gtk_color_selection_palette_to_string", true));
+
+			}
+		}
+	}
+
+	display.addIdleProc ();
+	Dialog oldModal = null;
+	if (GTK.gtk_window_get_modal (handle)) {
+		oldModal = display.getModalDialog ();
+		display.setModalDialog (this);
+	}
+	int signalId = 0;
+	int /*long*/ hookId = 0;
+	if ((style & SWT.RIGHT_TO_LEFT) != 0) {
+		signalId = OS.g_signal_lookup (OS.map, GTK.GTK_TYPE_WIDGET());
+		hookId = OS.g_signal_add_emission_hook (signalId, 0, display.emissionProc, handle, 0);
+	}
+	display.sendPreExternalEventDispatchEvent ();
+	int response = GTK.gtk_dialog_run (handle);
+	/*
+	* This call to gdk_threads_leave() is a temporary work around
+	* to avoid deadlocks when gdk_threads_init() is called by native
+	* code outside of SWT (i.e AWT, etc). It ensures that the current
+	* thread leaves the GTK lock acquired by the function above.
+	*/
+	GDK.gdk_threads_leave();
+	display.sendPostExternalEventDispatchEvent ();
+	if ((style & SWT.RIGHT_TO_LEFT) != 0) {
+		OS.g_signal_remove_emission_hook (signalId, hookId);
+	}
+	if (GTK.gtk_window_get_modal (handle)) {
+		display.setModalDialog (oldModal);
+	}
+	boolean success = response == GTK.GTK_RESPONSE_OK;
+	if (success) {
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+		if (GTK.GTK_VERSION >= OS.VERSION (3, 4, 0)) {
+			rgba = new GdkRGBA ();
+			GTK.gtk_color_chooser_get_rgba (handle, rgba);
+			red =  (int) (rgba.red * 255);
+			green = (int) (rgba.green * 255);
+			blue =  (int) (rgba.blue *  255);
+		} else {
+			color = new GdkColor ();
+			GTK.gtk_color_selection_get_current_color (colorsel, color);
+			red = (color.red >> 8) & 0xFF;
+			green = (color.green >> 8) & 0xFF;
+			blue = (color.blue >> 8) & 0xFF;
+
+			int /*long*/ settings = GTK.gtk_settings_get_default ();
+			if (settings != 0) {
+
+				int /*long*/ [] ptr = new int /*long*/ [1];
+				OS.g_object_get (settings, GTK.gtk_color_palette, ptr, 0);
+				if (ptr [0] != 0) {
+					int length = C.strlen (ptr [0]);
+					buffer = new byte [length];
+					C.memmove (buffer, ptr [0], length);
+					OS.g_free (ptr [0]);
+					String [] gdkColorStrings = null;
+					if (length > 0) {
+						String gtk_color_palette = new String(Converter.mbcsToWcs (buffer));
+						gdkColorStrings = splitString(gtk_color_palette, ':');
+						length = gdkColorStrings.length;
+					}
+					rgbs = new RGB [length];
+					for (int i=0; i<length; i++) {
+						String colorString = gdkColorStrings[i];
+						buffer = Converter.wcsToMbcs (colorString, true);
+						GDK.gdk_color_parse(buffer, color);
+						int redI = (color.red >> 8) & 0xFF;
+						int greenI = (color.green >> 8) & 0xFF;
+						int blueI = (color.blue >> 8) & 0xFF;
+						rgbs [i] = new RGB (redI, greenI, blueI);
+					}
+				}
+			}
+		}
+		rgb = new RGB (red, green, blue);
+	}
+
+	display.removeIdleProc ();
+	GTK.gtk_widget_destroy (handle);
+	if (!success) return null;
+
+	return rgb;
+}
+/**
+ * Sets the receiver's selected color to be the argument.
+ *
+ * @param rgb the new RGB value for the selected color, may be
+ *        null to let the platform select a default when
+ *        open() is called
+ * @see PaletteData#getRGBs
+ */
+public void setRGB (RGB rgb) {
+	this.rgb = rgb;
+}
+/**
+ * Sets the receiver's list of custom colors to be the given array
+ * of <code>RGB</code>s, which may be null to let the platform select
+ * a default when open() is called.
+ *
+ * @param rgbs the array of RGBs, which may be null
+ *
+ * @exception IllegalArgumentException <ul>
+ *    <li>ERROR_INVALID_ARGUMENT - if an RGB in the rgbs array is null</li>
+ * </ul>
+ *
+ * @since 3.8
+ */
+public void setRGBs(RGB[] rgbs) {
+	this.rgbs = rgbs;
+}
+static String[] splitString(String text, char ch) {
+    String[] substrings = new String[1];
+    int start = 0, pos = 0;
+    while (pos != -1) {
+        pos = text.indexOf(ch, start);
+        if (pos == -1) {
+        	substrings[substrings.length - 1] = text.substring(start);
+        } else {
+            substrings[substrings.length - 1] = text.substring(start, pos);
+            start = pos + 1;
+            String[] newSubstrings = new String[substrings.length+1];
+            System.arraycopy(substrings, 0, newSubstrings, 0, substrings.length);
+       		substrings = newSubstrings;
+        }
+    }
+    return substrings;
+}
+}
+
