@@ -249,6 +249,8 @@ class PlatformMacOSXGLCanvas extends AbstractPlatformGLCanvas {
 	public boolean glSwapInterval(GLCanvas canvas, int interval) {
 		canvas.effective.swapInterval = Integer.valueOf(interval);
 		context.setValues(new int[] { canvas.effective.swapInterval.intValue() }, OS.NSOpenGLCPSwapInterval);
+		// "OS.NSOpenGLCPSwapInterval" seems to be missing from newer versions of SWT, so here it is from the latest version it appears in (SWT 4.9):
+		//public static final int NSOpenGLCPSwapInterval = 222;
 		return true;
 	}
 
