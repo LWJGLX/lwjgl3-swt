@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.lwjglx</groupId>
 		<artifactId>lwjgl3-swt</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
+		<version>1.0.0</version>
 	</parent>
 
 	<artifactId>lwjgl3-swt-windows</artifactId>

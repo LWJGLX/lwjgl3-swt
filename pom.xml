@@ -5,7 +5,7 @@
 
 	<groupId>org.lwjglx</groupId>
 	<artifactId>lwjgl3-swt</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 	<name>LWJGLX/lwjgl3-swt</name>
 	<description>LWJGLX/lwjgl3-swt</description>
@@ -15,6 +15,15 @@
 		<name>LWJGLX</name>
 		<url>https://lwjglx.org</url>
 	</organization>
+	<developers>
+		<developer>
+			<id>kburjack</id>
+			<name>Kai Burjack</name>
+			<email>kburjack@googlemail.com</email>
+			<organization>LWJGLX</organization>
+			<organizationUrl>https://lwjglx.org</organizationUrl>
+		</developer>
+	</developers>
 
 	<licenses>
 		<license>
